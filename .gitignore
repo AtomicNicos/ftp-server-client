@@ -1,0 +1,11 @@
+# Editor files
+.vscode/
+
+# Project Artefacts
+*.o
+*.txt
+*.tar
+*.zip
+
+# Executable
+bash--
