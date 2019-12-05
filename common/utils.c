@@ -1,63 +1,12 @@
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <sys/socket.h>
+
 #include "utils.h"
-
-crc  crcTable[256];
-
-static unsigned long reflect(unsigned long data, unsigned char nBits) {
-	unsigned long  reflection = 0x00000000;
-	unsigned char  bit;
-
-	// Reflect the data about the center bit.
-	for (bit = 0; bit < nBits; ++bit) {
-		// If the LSB bit is set, set the reflection of it.
-		if (data & 0x01) 
-			reflection |= (1 << ((nBits - 1) - bit));
-
-		data = (data >> 1);
-	}
-
-	return (reflection);
-}
-
-
-void crcInit(void) {
-    crc			   remainder;
-	int			   dividend;
-	unsigned char  bit;
-
-    // Compute the remainder of each possible dividend.
-    for (dividend = 0; dividend < 256; ++dividend)
-    {
-        //Start with the dividend followed by zeros.
-        remainder = dividend << (WIDTH - 8);
-
-        // Perform modulo-2 division, a bit at a time.
-        for (bit = 8; bit > 0; --bit) {
-            // Try to divide the current data bit.
-            if (remainder & TOPBIT)
-                remainder = (remainder << 1) ^ POLYNOMIAL;
-            else 
-                remainder = (remainder << 1);
-        }
-
-        // Store the result into the table.
-        crcTable[dividend] = remainder;
-    }
-}
-
-crc computeCRC(unsigned char const msg[], int size) {
-    crc	           remainder = INITIAL_REMAINDER;
-    unsigned char  data;
-	int            byte;
-
-    // Divide the message by the polynomial, a byte at a time.
-    for (byte = 0; byte < size; ++byte) {
-        data = REFLECT_DATA(msg[byte]) ^ (remainder >> (WIDTH - 8));
-  		remainder = crcTable[data] ^ (remainder << 8);
-    }
-
-    // The final remainder is the CRC.
-    return (REFLECT_REMAINDER(remainder) ^ FINAL_XOR_VALUE);
-}
+#include "crc.h"
 
 /** Allows fancy color printouts to the console.
  * @param string    The string to funky print
@@ -68,4 +17,37 @@ crc computeCRC(unsigned char const msg[], int size) {
  */ 
 void printColorized(char *string, int ANSI_FGCOLOR, int ANSI_BGCOLOR, int ANSI_DECO, int newLine) {
     printf("\033[%i;%i;%im%s\033[0m%s", ANSI_DECO, ANSI_BGCOLOR, ANSI_FGCOLOR, string, (newLine == 1) ? "\n\0" : "\0");
+}
+
+int sendPacket(int other_socket, int packetNum, int maxPacketNum, int packetSize, int *nsent, char* fmt, ...) {
+    char *buffer = malloc(packetSize);
+    va_list args;
+    va_start(args, fmt);
+    vsprintf(buffer, fmt, args);
+    va_end(args);
+
+    char *amendedBuffer = malloc(2 * PACKET_INFO_SIZE + PACKET_SIZE_INDIC + packetSize);
+    snprintf(   amendedBuffer, 
+                2 * PACKET_INFO_SIZE + PACKET_SIZE_INDIC + packetSize, 
+                "%.4x%.4x%.3x%*s%s", 
+                packetNum, maxPacketNum, 
+                (int) strlen(buffer), (int) (BUFFER_SIZE - strlen(buffer)) - 1, 
+                " ", 
+                buffer);
+
+    int CRC = computeCRC(amendedBuffer, 2 * PACKET_INFO_SIZE + PACKET_SIZE_INDIC + packetSize);
+    char *crcedBuffer = malloc(FRAME_SIZE + packetSize);
+    snprintf(crcedBuffer, FRAME_SIZE + packetSize, "%s%.4x", amendedBuffer, CRC);
+
+    *nsent = send(other_socket, crcedBuffer, FRAME_SIZE + packetSize, 0);
+    
+    free(crcedBuffer);
+    free(amendedBuffer);
+    free(buffer);
+    return (*nsent == -1) ? 0 : 1;
+}
+
+int receivePacket(int other_socket, int packetSize, int *nrecvd, char* buffer) {
+    int nsent = recv(other_socket, buffer, FRAME_SIZE + packetSize, 0);
+    return nsent;
 }

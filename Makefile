@@ -1,6 +1,7 @@
 CC=gcc
 CCFLAGS=-Wall -g
 LDFLAGS=
+COMPNAME=nicolas_boeckh_ftp
 
 SOURCES_COMMON=$(wildcard common/*.c)
 
@@ -11,8 +12,6 @@ OBJECTS_CLIENT=$(SOURCES_CLIENT:.c=.o)
 SOURCES_SERVER=$(SOURCES_COMMON) $(wildcard server/*.c)
 TARGET_SERVER=ftp-server
 OBJECTS_SERVER=$(SOURCES_SERVER:.c=.o)
-
-COMPNAME=nicolas_boeckh_ftp
 
 all: $(TARGET_CLIENT) $(TARGET_SERVER)
 

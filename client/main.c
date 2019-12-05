@@ -10,25 +10,9 @@
 #include <arpa/inet.h>
 
 #include "../common/utils.h"
+#include "../common/crc.h"
 #include "lineReader.h"
 #include "builtins.h"
-
-int sendPacket(int server, int maxSize, char* fmt, ...) {
-    char *buffer = malloc(maxSize);
-    va_list args;
-    va_start(args, fmt);
-    vsprintf(buffer, fmt, args);
-    va_end(args);
-
-    int nsent = send(server, buffer, strlen(buffer), 0);
-
-    free(buffer);
-    return nsent;
-}
-
-int receivePacket(int server, int maxSize, char* buffer) {
-
-}
 
 void handShake(int server) {
 
@@ -42,7 +26,7 @@ int main(int argc, char **argv) {
     int sock, server;
 
     printf("START\n");
-    printf("%d\n", computeCRC("TEST", 16));
+    printf("%d\n", computeCRC("TEST", 4));
 
 
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
@@ -74,14 +58,16 @@ int main(int argc, char **argv) {
 
         int *_argc = malloc(sizeof(int));
         char **_argv = splitLine(line, _argc);  // Generate an asymmetrical component holder of vacuous contents or some such bs.
+        
         printf("ARGC %i\n", *_argc);
+        int *_bytes = malloc(sizeof(int));
 
         if (*_argc > 0) {
             char * builtinCommand = executeBuiltin(_argc, _argv);
             if (builtinCommand == NULL) {        // Not a builtin
                 if (*_argc == 1 && strncmp("exit", _argv[0], 4) == 0) {
                     if (strlen(_argv[0]) == 4) {
-                        
+                        printf("SENT %d bytes\n", sendPacket(server, 404, 520, BUFFER_SIZE, _bytes, "%s", "exit"));
                         // EXIT handShake
                         printf("Bye\n");    // Leave.
                         
@@ -97,11 +83,9 @@ int main(int argc, char **argv) {
                 printf("%s\n", builtinCommand);
          }
 
+        printf("SENT %d bytes\n", sendPacket(server, 1, 1, BUFFER_SIZE, _bytes, "%s", "TEST"));
+        free(_bytes);
     } while (clientShouldRun == 1);
-    
-    printf("SENT %d bytes\n", sendPacket(server, BUFFER_SIZE, "%s", "TEST"));
-    sleep(1);
-    printf("SENT %d bytes\n", sendPacket(server, BUFFER_SIZE, "%s %d", "TEST2", 42));
 
     close(sock);
     close(server);

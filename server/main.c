@@ -7,9 +7,9 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
-#include <zlib.h>
 
 #include "../common/utils.h"
+#include "../common/crc.h"
 
 //\033[%i;%i;%im%s\033[0m
 
@@ -41,6 +41,7 @@ int main(int argc, char **argv) {
 
     int programShouldRun = 1;   // Non descript.
     int client;
+    int *_bytes = malloc(sizeof(int));
 
     do {
         client = accept(sock, (struct sockaddr *) &client_addr, &client_addr_length);
@@ -59,23 +60,32 @@ int main(int argc, char **argv) {
             free(addr);
         }
 
-        char *buffer = malloc(BUFFER_SIZE);
+        char *buffer = malloc(FRAME_SIZE + BUFFER_SIZE);
         memset(buffer, 0, BUFFER_SIZE);
-        
-        int nread = 0, nreadIter = 0;
-        nreadIter = recv(client, buffer, BUFFER_SIZE, 0);
-        printf("RECVD %d BYTES\n%s\n", nreadIter, buffer);
+        int clientConnected = 1;
+        do {
+            int nread = 0, nreadIter = 0;
+            nreadIter = receivePacket(client, FRAME_SIZE + BUFFER_SIZE, _bytes, buffer);
+            printf("RECVD %d BYTES\n%s\n", nreadIter, buffer);
 
-        if (nreadIter == 0) {
-            printf("Received no bytes from the client.\n");
-        }
+            int CRC = computeCRC(buffer, strlen(buffer));
+            printf("CRC : %.4x\n", CRC);
 
+            if (nreadIter == 0) {
+                printf("Received no bytes from the client.\n");
+            }
+            if (nreadIter == 4 && strncmp(buffer, "exit", 4) == 0) {
+                clientConnected = 0;
+            }
+
+        } while (clientConnected == 1);
         free(buffer);
         close(client);
     } while(programShouldRun == 1);
 
     sleep(1);
     printf("STOP\n");
+    free(_bytes);
     close(sock);
     exit(EXIT_SUCCESS);
 }
