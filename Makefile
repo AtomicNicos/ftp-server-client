@@ -2,11 +2,13 @@ CC=gcc
 CCFLAGS=-Wall -g
 LDFLAGS=
 
-SOURCES_CLIENT=$(wildcard client/*.c)
-TARGET_CLIENT=ftp-client
-OBJECTS_CLIENT=$(SOURCES_CLIENT:.c=.o)
+SOURCES_COMMON=$(wildcard common/*.c)
 
-SOURCES_SERVER=$(wildcard server/*.c)
+SOURCES_CLIENT=$(wildcard client/*.c) $(SOURCES_COMMON)
+TARGET_CLIENT=ftp-client
+OBJECTS_CLIENT=$(SOURCES_CLIENT:.c=.o) 
+
+SOURCES_SERVER=$(wildcard server/*.c) $(SOURCES_COMMON)
 TARGET_SERVER=ftp-server
 OBJECTS_SERVER=$(SOURCES_SERVER:.c=.o)
 
@@ -23,13 +25,19 @@ $(TARGET_SERVER): $(OBJECTS_SERVER)
 client/%.o: %.c %.h
 		$(CC) $(CCFLAGS) -c $<
 
-server/%.o: %.c %.h
-		$(CC) $(CCFLAGS) -c $<
-
 client/%.o: %.c
 		$(CC) $(CCFLAGS) -c $<
 
+server/%.o: %.c %.h
+		$(CC) $(CCFLAGS) -c $<
+
 server/%.o: %.c
+		$(CC) $(CCFLAGS) -c $<
+
+common/%.o: %.c %.h
+		$(CC) $(CCFLAGS) -c $<
+
+common/%.o: %.c
 		$(CC) $(CCFLAGS) -c $<
 
 clean:

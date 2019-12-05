@@ -3,7 +3,7 @@
 #include <string.h>
 #include <errno.h>
 
-#include "utils.h"
+#include "../common/utils.h"
 #include "lineReader.h"
 
 /** @brief Acquires a line from the stdin and returns it.

@@ -9,15 +9,26 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 
-#include "utils.h"
+#include "../common/utils.h"
 
-#define SEND(sock, buffer, max_size, fmt, ...) {\
-memset(buffer, 0, max_size);\
-snprintf(buffer, max_size, fmt, __VA_ARGS__);\
-write(sock, buffer, strlen(buffer)); /* Write to the socket. */\
+int sendPacket(int server, int maxSize, char* fmt, ...) {
+    char *buffer = malloc(maxSize);
+    va_list args;
+    va_start(args, fmt);
+    vsprintf(buffer, fmt, args);
+    va_end(args);
+
+    int nsent = send(server, buffer, strlen(buffer), 0);
+
+    free(buffer);
+    return nsent;
 }
 
-void sendData(int server, char* fmt, ...) {
+int receivePacket(int server, int maxSize, char* buffer) {
+
+}
+
+void handShake(int server) {
 
 }
 
@@ -42,13 +53,10 @@ int main(int argc, char **argv) {
 
     if (connect(server, (struct sockaddr*) &serv_addr, sizeof(serv_addr)) < 0) // Connect to the socket.
         FAIL_SUCCESFULLY("SOCKET CONNECTION ERROR\n");
-
-    char *buffer = malloc(BUFFER_SIZE);
-    snprintf(buffer, BUFFER_SIZE, "%s", "TEST");
-    int nsent = send(server, buffer, strlen(buffer), 0);
-    printf("SENT %d bytes\n", nsent);
-
-    free(buffer);
+    
+    printf("SENT %d bytes\n", sendPacket(server, BUFFER_SIZE, "%s", "TEST"));
+    sleep(1);
+    printf("SENT %d bytes\n", sendPacket(server, BUFFER_SIZE, "%s %d", "TEST2", 42));
 
     close(sock);
     close(server);
