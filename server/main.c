@@ -14,11 +14,14 @@
 //\033[%i;%i;%im%s\033[0m
 
 int main(int argc, char **argv) {
+    crcInit();
+
     struct sockaddr_in serv_addr, client_addr;
     unsigned int client_addr_length = sizeof(client_addr);
     int sock;
 
     printf("START\n");
+    printf("%d\n", computeCRC("TEST", 16));
 
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         FAIL_SUCCESFULLY("Socket could not be created\n");
@@ -37,6 +40,7 @@ int main(int argc, char **argv) {
 
     int programShouldRun = 1;   // Non descript.
     int client;
+
     do {
         client = accept(sock, (struct sockaddr *) &client_addr, &client_addr_length);
         
@@ -51,7 +55,6 @@ int main(int argc, char **argv) {
 
         char *buffer = malloc(BUFFER_SIZE);
         memset(buffer, 0, BUFFER_SIZE);
-
         
         int nread = 0, nreadIter = 0;
         nreadIter = recv(client, buffer, BUFFER_SIZE, 0);

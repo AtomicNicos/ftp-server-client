@@ -58,5 +58,4 @@ crc computeCRC(unsigned char const msg[], int size) {
 
     // The final remainder is the CRC.
     return (REFLECT_REMAINDER(remainder) ^ FINAL_XOR_VALUE);
-
 }

@@ -33,11 +33,14 @@ void handShake(int server) {
 }
 
 int main(int argc, char **argv) {
+    crcInit();
+
     struct sockaddr_in serv_addr;
     memset(&serv_addr, 0, sizeof(serv_addr));
     int sock, server;
 
     printf("START\n");
+    printf("%d\n", computeCRC("TEST", 16));
 
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         FAIL_SUCCESFULLY("Socket could not be created\n");
