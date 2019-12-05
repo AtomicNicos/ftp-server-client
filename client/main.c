@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdarg.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -14,6 +15,10 @@
 memset(buffer, 0, max_size);\
 snprintf(buffer, max_size, fmt, __VA_ARGS__);\
 write(sock, buffer, strlen(buffer)); /* Write to the socket. */\
+}
+
+void sendData(int server, char* fmt, ...) {
+
 }
 
 int main(int argc, char **argv) {
@@ -40,7 +45,7 @@ int main(int argc, char **argv) {
 
     char *buffer = malloc(BUFFER_SIZE);
     snprintf(buffer, BUFFER_SIZE, "%s", "TEST");
-    int nsent = send(server, buffer, BUFFER_SIZE, 0);
+    int nsent = send(server, buffer, strlen(buffer), 0);
     printf("SENT %d bytes\n", nsent);
 
     free(buffer);
