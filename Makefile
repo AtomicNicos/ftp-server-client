@@ -4,11 +4,11 @@ LDFLAGS=
 
 SOURCES_COMMON=$(wildcard common/*.c)
 
-SOURCES_CLIENT=$(wildcard client/*.c) $(SOURCES_COMMON)
+SOURCES_CLIENT=$(SOURCES_COMMON) $(wildcard client/*.c)
 TARGET_CLIENT=ftp-client
 OBJECTS_CLIENT=$(SOURCES_CLIENT:.c=.o) 
 
-SOURCES_SERVER=$(wildcard server/*.c) $(SOURCES_COMMON)
+SOURCES_SERVER=$(SOURCES_COMMON) $(wildcard server/*.c)
 TARGET_SERVER=ftp-server
 OBJECTS_SERVER=$(SOURCES_SERVER:.c=.o)
 
