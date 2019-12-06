@@ -19,6 +19,22 @@ void printColorized(char *string, int ANSI_FGCOLOR, int ANSI_BGCOLOR, int ANSI_D
     printf("\033[%i;%i;%im%s\033[0m%s", ANSI_DECO, ANSI_BGCOLOR, ANSI_FGCOLOR, string, (newLine == 1) ? "\n\0" : "\0");
 }
 
+void pprint(int *bytes, int *contentSize, int *status, char *content, int sent) {
+    printf("%s %i BYTES, CONTENT OF SIZE %i     STATUS : %i\n=====START PACKET=====\n%s\n======END PACKET======\n", (sent == 1) ? "SENT" : "RECVD", *bytes, *contentSize, *status, content);
+}
+
+int sendMessage(int localSocket, char *message) {
+    
+
+    for (int i = 0; i < (int) (strlen(message) / COMMAND_SIZE) + 1; i++) {
+        char *packet = malloc(COMMAND_SIZE + 1);
+        snprintf(packet, COMMAND_SIZE + 1, "%s", message + (i * COMMAND_SIZE));
+        free(packet);
+    }
+
+    return 0;
+}
+
 /** @brief Sends a unary packet over the wire (Bootleg TCP : [packet_id][max_packet_id][packet_len][packet][CRC]).
  * @param localSocket   The local socket
  * @param packetNum     The number of the packet
@@ -89,16 +105,12 @@ int receivePacket(int localSocket, int packetSize, int *nrecvd, int *_contentSiz
     
     free(packetNum); free(packetMax); free(contentSize); free(_crc); free(packet); free(fullPacket);
 
-    if (arrivedCRC == calculatedCRC)
-        return 0;
-    else if (_packetNum == _packetMax)
+    if (_packetNum == _packetMax)
         return TRANSMISSION_FINISHED;
     else if (_packetNum > _packetMax)
-        return TRANSMISSION_FINISHED;
+        return TRANSMISSION_EXCESS;
+    else if (arrivedCRC == calculatedCRC)
+        return 0;
     else 
         return _packetNum;
-}
-
-void pprint(int *bytes, int *contentSize, int *status, char *content, int sent) {
-    printf("%s %i BYTES, CONTENT OF SIZE %i     STATUS : %i\n=====START TEXT=====\n%s\n======END TEXT======\n", (sent == 1) ? "SENT" : "RECVD", *bytes, *contentSize, *status, content);
 }

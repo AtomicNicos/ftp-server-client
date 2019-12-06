@@ -21,17 +21,22 @@
 #define CMD_UPLOAD      "UL"
 #define CMD_DOWNLOAD    "DL"
 #define CMD_MKDIR       "MKDIR"
+#define CMD_RENAME      "MV"
+#define CMD_BROADCAST   "BRDCST"
 #define STATUS_OK       "OK"
 #define STATUS_ERR      "RESEND"
+#define STATUS_RESINUSE "RIU"
 
 #define FAIL_SUCCESFULLY(msg)       { fprintf(stderr, msg); exit(EXIT_FAILURE); }
 #define FAIL_FSUCCESFULLY(msg, ...) { fprintf(stderr, msg, __VA_ARGS__); exit(EXIT_FAILURE); }
 
 void printColorized(char *string, int ANSI_FGCOLOR, int ANSI_BGCOLOR, int ANSI_DECO, int newLine);
 
-int sendPacket(int server, int packetNum, int maxPacketNum, int packetSize, int* nsent, char* fmt, ...);
+int sendMessage(int localSocket, char *message);
 
-int receivePacket(int server, int maxSize, int *nrecvd, int *contentSize, char* buffer);
+int sendPacket(int localSocket, int packetNum, int maxPacketNum, int packetSize, int *nsent, char* fmt, ...);
+
+int receivePacket(int localSocket, int maxSize, int *nrecvd, int *contentSize, char *buffer);
 
 void pprint(int *bytes, int *contentSize, int *status, char *content, int sent);
 
