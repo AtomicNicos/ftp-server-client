@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
 
     struct sockaddr_in serv_addr, client_addr;
     unsigned int client_addr_length = sizeof(client_addr);
-    int sock;
+    int sock, connectionCount = 0;
     const char *pwd = getenv("PWD");
 
     printf("START\n");
@@ -41,11 +41,13 @@ int main(int argc, char **argv) {
 
     int programShouldRun = 1;   // Non descript.
     int client;
-    int *_bytes = malloc(sizeof(int));
+    int *_bytes = malloc(sizeof(int)), *_contentSize = malloc(sizeof(int));
+    int *_status = malloc(sizeof(int));
 
     do {
         client = accept(sock, (struct sockaddr *) &client_addr, &client_addr_length);
-        
+        connectionCount += 1;
+
         if (client < 0)
             printColorized("Client connection refused", 31, 40, 0, 1);
         else {
@@ -54,7 +56,7 @@ int main(int argc, char **argv) {
             char *addr = malloc(8);
             snprintf(addr, 8, "%d", client_addr.sin_port);
 
-            printf("New connection from [IP:PORT] ["); printColorized(client_origin, 32, 40, 0, 0); printf(":"); printColorized(addr, 34, 40, 0, 0); printf("]\n");
+            printf("Connect %i from [IP:PORT] [", connectionCount); printColorized(client_origin, 32, 40, 0, 0); printf(":"); printColorized(addr, 34, 40, 0, 0); printf("]\n");
 
             free(client_origin);
             free(addr);
@@ -64,17 +66,14 @@ int main(int argc, char **argv) {
         memset(buffer, 0, BUFFER_SIZE);
         int clientConnected = 1;
         do {
-            int nread = 0, nreadIter = 0;
-            nreadIter = receivePacket(client, FRAME_SIZE + BUFFER_SIZE, _bytes, buffer);
-            printf("RECVD %d BYTES\n%s\n", nreadIter, buffer);
+            *_status = receivePacket(client, BUFFER_SIZE, _bytes, _contentSize, buffer);
+            pprint(_bytes, _contentSize, _status, buffer, 0);
 
-            int CRC = computeCRC(buffer, strlen(buffer));
-            printf("CRC : %.4x\n", CRC);
-
-            if (nreadIter == 0) {
+            if (*_bytes == 0) {
                 printf("Received no bytes from the client.\n");
             }
-            if (nreadIter == 4 && strncmp(buffer, "exit", 4) == 0) {
+            if (*_contentSize == 4 && strncmp(buffer, CMD_EXIT, 4) == 0) {
+                printf("BYE\n");
                 clientConnected = 0;
             }
 
@@ -86,6 +85,7 @@ int main(int argc, char **argv) {
     sleep(1);
     printf("STOP\n");
     free(_bytes);
+    free(_status);
     close(sock);
     exit(EXIT_SUCCESS);
 }

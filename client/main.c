@@ -19,6 +19,8 @@ void handShake(int server) {
 }
 
 int main(int argc, char **argv) {
+    if (argc != 1)
+        FAIL_SUCCESFULLY("TOO MANY parameters");
     crcInit();
 
     struct sockaddr_in serv_addr;
@@ -56,18 +58,25 @@ int main(int argc, char **argv) {
 
         char *line = getLine(); // Get user input.
 
+        // CHECK SERVER IS ALIVE
+
         int *_argc = malloc(sizeof(int));
         char **_argv = splitLine(line, _argc);  // Generate an asymmetrical component holder of vacuous contents or some such bs.
         
         printf("ARGC %i\n", *_argc);
         int *_bytes = malloc(sizeof(int));
+        int *_status = malloc(sizeof(int));
+        int *_len = malloc(sizeof(int));
 
         if (*_argc > 0) {
             char * builtinCommand = executeBuiltin(_argc, _argv);
             if (builtinCommand == NULL) {        // Not a builtin
                 if (*_argc == 1 && strncmp("exit", _argv[0], 4) == 0) {
                     if (strlen(_argv[0]) == 4) {
-                        printf("SENT %d bytes\n", sendPacket(server, 404, 520, BUFFER_SIZE, _bytes, "%s", "exit"));
+                        *_status = sendPacket(server, 404, 520, BUFFER_SIZE, _bytes, "%s", CMD_EXIT);
+                        *_len = strlen(CMD_EXIT);
+                        pprint(_bytes, _len, _status, CMD_EXIT, 1);
+
                         // EXIT handShake
                         printf("Bye\n");    // Leave.
                         
@@ -81,10 +90,28 @@ int main(int argc, char **argv) {
                 printf("%s\n", builtinCommand);
             } else 
                 printf("%s\n", builtinCommand);
+         } else {
+            char buffer[4] = "TEST";
+            *_status = sendPacket(server, 1, 1, BUFFER_SIZE, _bytes, "%s", buffer);
+            *_len = strlen(buffer);
+            pprint(_bytes, _len, _status, buffer, 1);
          }
 
-        printf("SENT %d bytes\n", sendPacket(server, 1, 1, BUFFER_SIZE, _bytes, "%s", "TEST"));
         free(_bytes);
+        free(_status);
+        free(_len);
+
+         // Cleanup
+        for (int i = 0; i < *_argc; i++) {
+            _argv[i] = realloc(_argv[i], 0);
+            _argv[i] = NULL;
+        }
+
+        memset(_argc, 0, sizeof(int));
+
+        free(line);
+        free(_argv);
+        _argc = realloc(_argc, 0);
     } while (clientShouldRun == 1);
 
     close(sock);
