@@ -23,15 +23,34 @@ void pprint(int *bytes, int *contentSize, int *status, char *content, int sent) 
     printf("%s %i BYTES, CONTENT OF SIZE %i     STATUS : %i\n=====START PACKET=====\n%s\n======END PACKET======\n", (sent == 1) ? "SENT" : "RECVD", *bytes, *contentSize, *status, content);
 }
 
-int sendMessage(int localSocket, char *message) {
-    
-
-    for (int i = 0; i < (int) (strlen(message) / COMMAND_SIZE) + 1; i++) {
+int sendMessage(int localSocket, char *message, char *response) {
+    // -> BRDCST
+    // <- OK
+    // -> DATA (-> D_n | <- OK n)
+    // -> DONE
+    // <- OK
+    int size = (int) (strlen(message) / COMMAND_SIZE) + 1;
+    int *nrecvd = malloc(sizeof(int));
+    int *nsent = malloc(sizeof(int));
+    int *contentSize = malloc(sizeof(int));
+    for (int i = 0; i < size; i++) {
         char *packet = malloc(COMMAND_SIZE + 1);
         snprintf(packet, COMMAND_SIZE + 1, "%s", message + (i * COMMAND_SIZE));
+        int sentStatus = sendPacket(localSocket, i, size, COMMAND_SIZE, nsent, "%s", packet);
         free(packet);
+        char *response = malloc(COMMAND_SIZE + 1);
+        int receiveStatus = receivePacket(localSocket, COMMAND_SIZE, nrecvd, contentSize, response);
+        
+        if (receiveStatus != 0)
+            i--;
+        else
+            pprint(nrecvd, contentSize, &receiveStatus, response, 0);
+        
+        free(response);
     }
-
+    free(nrecvd);
+    free(nsent);
+    free(contentSize);
     return 0;
 }
 
