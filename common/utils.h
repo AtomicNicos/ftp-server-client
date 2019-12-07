@@ -32,11 +32,11 @@
 
 void printColorized(char *string, int ANSI_FGCOLOR, int ANSI_BGCOLOR, int ANSI_DECO, int newLine);
 
-int sendMessage(int localSocket, char *message, char *response);
+int sendMessage(int localSocket, char *message, int packetSize, char *response);
 
 int sendPacket(int localSocket, int packetNum, int maxPacketNum, int packetSize, int *nsent, char* fmt, ...);
 
-char* receiveMessage(int localSocket);
+char* receiveMessage(int localSocket, char *init);
 
 int receivePacket(int localSocket, int maxSize, int *nrecvd, int *contentSize, char *buffer);
 
