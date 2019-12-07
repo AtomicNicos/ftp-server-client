@@ -25,11 +25,11 @@ int main(int argc, char **argv) {
 
     struct sockaddr_in serv_addr;
     memset(&serv_addr, 0, sizeof(serv_addr));
-    int sock, server;
+    int local_socket, server;
 
     printf("START\n");
 
-    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    if ((local_socket = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         FAIL_SUCCESFULLY("Socket could not be created\n");
 
     char *serverAddress = SERVER_IP;//getLine();
@@ -51,6 +51,11 @@ int main(int argc, char **argv) {
     strncat(distant_cwd, "~", FILENAME_MAX);
 
     int clientShouldRun = 1;
+
+    char *response = malloc(COMMAND_SIZE + 1);
+    sendMessage(server, "ERNUCNFOWBGYLRFCCRWFHKRYBYBKTGFNMYXZQSJYVKOZVFYXYHTOSYIKEGNIRBWZKLSPVGGGBCKBETEGQYYYSTTFYLVPGXQJGZZCDUIHNTVBBKTHPMZKSQGCZSLCFRKENUNSFISGQJLYDHZEVPLORVKLNJBGNEEEBXVKHJDCTGQOMRLZJOLYXBVVFZJIGZIWOHEGTXRUWDMMLTFWIDLLFQJMFOQWJNPSNCCDBMJPEYNXQFKSJQGTJOZGWMMRJMCRXCFBHXJRNSDXQQVXMMDJYEEIHPRPSLDDWRLUXBJUIRUSZGLOMNDWHBEZNTUDYIJXWTGZKGDWDZLROWMYMFZQDOLQVQCFQLCCRTPQCPOJXNEHSRLMKGFYUDZNVPDNRCYEEDNDJRBMRLZBPZFQSMCOHBUZJZKCEYFMZVKVYZITCEXUUWJGNIQJYDTVLQRJGWUKRZXXDKORKLULQBHUZKLZSNFCVQSGVKYHWPTWLTRXLLDEPCNNMXQVEUQVISHPEUFITZERDZEOYSZOXNXQISBPNCT", response);
+    free(response);
+
     do {
         print_prompt(env_user, serverAddress, distant_cwd);
 
@@ -112,7 +117,7 @@ int main(int argc, char **argv) {
         _argc = realloc(_argc, 0);
     } while (clientShouldRun == 1);
 
-    close(sock);
+    close(local_socket);
     close(server);
     exit(EXIT_SUCCESS);
 }

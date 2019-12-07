@@ -1,6 +1,6 @@
 CC=gcc
 CCFLAGS=-Wall -g
-LDFLAGS=
+#LDFLAGS=
 COMPNAME=nicolas_boeckh_ftp
 
 SOURCES_COMMON=$(wildcard common/*.c)

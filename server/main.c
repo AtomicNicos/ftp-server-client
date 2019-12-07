@@ -22,7 +22,6 @@ int main(int argc, char **argv) {
     const char *pwd = getenv("PWD");
 
     printf("START\n");
-    printf("%d\n", computeCRC("TEST", 16));
 
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         FAIL_SUCCESFULLY("Socket could not be created\n");
@@ -62,14 +61,11 @@ int main(int argc, char **argv) {
             free(addr);
         }
 
-        
-        sendMessage(client, "ERNUCNFOWBGYLRFCCRWFHKRYBYBKTGFNMYXZQSJYVKOZVFYXYHTOSYIKEGNIRBWZKLSPVGGGBCKBETEGQYYYSTTFYLVPGXQJGZZCDUIHNTVBBKTHPMZKSQGCZSLCFRKENUNSFISGQJLYDHZEVPLORVKLNJBGNEEEBXVKHJDCTGQOMRLZJOLYXBVVFZJIGZIWOHEGTXRUWDMMLTFWIDLLFQJMFOQWJNPSNCCDBMJPEYNXQFKSJQGTJOZGWMMRJMCRXCFBHXJRNSDXQQVXMMDJYEEIHPRPSLDDWRLUXBJUIRUSZGLOMNDWHBEZNTUDYIJXWTGZKGDWDZLROWMYMFZQDOLQVQCFQLCCRTPQCPOJXNEHSRLMKGFYUDZNVPDNRCYEEDNDJRBMRLZBPZFQSMCOHBUZJZKCEYFMZVKVYZITCEXUUWJGNIQJYDTVLQRJGWUKRZXXDKORKLULQBHUZKLZSNFCVQSGVKYHWPTWLTRXLLDEPCNNMXQVEUQVISHPEUFITZERDZEOYSZOXNXQISBPNCT");
-
         char *buffer = malloc(FRAME_SIZE + BUFFER_SIZE);
         memset(buffer, 0, BUFFER_SIZE);
         int clientConnected = 1;
         do {
-            *_status = receivePacket(client, BUFFER_SIZE, _bytes, _contentSize, buffer);
+            *_status = receivePacket(client, COMMAND_SIZE, _bytes, _contentSize, buffer);
             pprint(_bytes, _contentSize, _status, buffer, 0);
 
             if (*_bytes == 0) {

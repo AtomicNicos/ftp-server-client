@@ -33,24 +33,33 @@ int sendMessage(int localSocket, char *message, char *response) {
     int *nrecvd = malloc(sizeof(int));
     int *nsent = malloc(sizeof(int));
     int *contentSize = malloc(sizeof(int));
+    int *status = malloc(sizeof(int));
+
+    *status = sendPacket(localSocket, 1, 1, COMMAND_SIZE, nsent, "%s %s", CMD_BROADCAST, "MESSAGE");
+    *status = receivePacket(localSocket, COMMAND_SIZE, nrecvd, contentSize, response);
+    
+    pprint(nrecvd, contentSize, status, response, 0);
+    
+
     for (int i = 0; i < size; i++) {
         char *packet = malloc(COMMAND_SIZE + 1);
         snprintf(packet, COMMAND_SIZE + 1, "%s", message + (i * COMMAND_SIZE));
-        int sentStatus = sendPacket(localSocket, i, size, COMMAND_SIZE, nsent, "%s", packet);
+        *status = sendPacket(localSocket, i, size, COMMAND_SIZE, nsent, "%s", packet);
         free(packet);
         char *response = malloc(COMMAND_SIZE + 1);
-        int receiveStatus = receivePacket(localSocket, COMMAND_SIZE, nrecvd, contentSize, response);
+        *status = receivePacket(localSocket, COMMAND_SIZE, nrecvd, contentSize, response);
         
-        if (receiveStatus != 0)
+        if (*status != 0)
             i--;
         else
-            pprint(nrecvd, contentSize, &receiveStatus, response, 0);
+            pprint(nrecvd, contentSize, status, response, 0);
         
         free(response);
     }
     free(nrecvd);
     free(nsent);
     free(contentSize);
+    free(status);
     return 0;
 }
 
@@ -76,7 +85,7 @@ int sendPacket(int localSocket, int packetNum, int maxPacketNum, int packetSize,
                 2 * PACKET_INFO_SIZE + PACKET_SIZE_INDIC + packetSize, 
                 "%.4x%.4x%.3x%*s%s", 
                 packetNum, maxPacketNum, 
-                (int) strlen(buffer), (int) (BUFFER_SIZE - strlen(buffer)) - 1, 
+                (int) strlen(buffer), (int) (packetSize - strlen(buffer)) - 1, 
                 " ", 
                 buffer);
 
@@ -90,6 +99,10 @@ int sendPacket(int localSocket, int packetNum, int maxPacketNum, int packetSize,
     free(amendedBuffer);
     free(buffer);
     return (*nsent != packetSize + FRAME_SIZE) ? 0 : 1;
+}
+
+char* receiveMessage(int localSocket) {
+    return "";
 }
 
 /** @brief Receives a unary packet.
@@ -111,6 +124,8 @@ int receivePacket(int localSocket, int packetSize, int *nrecvd, int *_contentSiz
     snprintf(packetMax, 5, "%s", packet + 4);
     snprintf(contentSize, 4, "%s", packet + 8);
     snprintf(_crc, 5, "%s", fullPacket + packetSize + FRAME_SIZE - 5);
+
+    printf("%s\n", packet);
 
     int _packetNum = (int) strtol(packetNum, NULL, 16);
     int _packetMax = (int) strtol(packetMax, NULL, 16);
