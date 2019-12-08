@@ -20,7 +20,7 @@ void printColorized(char *string, int ANSI_FGCOLOR, int ANSI_BGCOLOR, int ANSI_D
 }
 
 void pprint(int *bytes, int *contentSize, int *status, char *content, int sent) {
-    printf("%s %i BYTES, CONTENT OF SIZE %i     STATUS : %i\n=====START PACKET=====\n%s\n======END PACKET======\n\n", (sent == 1) ? "SENT" : "RECVD", *bytes, *contentSize, *status, content);
+    printf("%s %i BYTES, CONTENT OF SIZE %i     STATUS : %i\n==%s==\n\n", (sent == 1) ? "SENT" : "RECVD", *bytes, *contentSize, *status, content);
 }
 
 int sendMessage(int localSocket, char *message, int packetSize, char *response) {
@@ -30,11 +30,7 @@ int sendMessage(int localSocket, char *message, int packetSize, char *response) 
     int *status = malloc(sizeof(int));
 
     *status = sendPacket(localSocket, COMMAND_SIZE, bytes, "%s %s 0x%.16x", CMD_BROADCAST, "MSG", size);
-
-    printf("SENT THIS\n");
-
     *status = receivePacket(localSocket, COMMAND_SIZE, bytes, response);
-    printf("RECVD THIS\n");
     pprint(bytes, status, status, response, 0);
 
     printf("THE RESPONSE WAS %s\n", response);
@@ -43,7 +39,7 @@ int sendMessage(int localSocket, char *message, int packetSize, char *response) 
             char *packet = malloc(packetSize + 1);
             snprintf(packet, COMMAND_SIZE + 1, "%s", message + (i * COMMAND_SIZE));
             *status = sendPacket(localSocket, COMMAND_SIZE + 1, bytes, "%s", packet);
-            printf("PACKET %i %s\n", i, packet);
+            printf("  %i %s\n", i, packet);
             free(packet);
 
             char *response = malloc(COMMAND_SIZE + 1);
@@ -122,11 +118,18 @@ int sendPacket(int localSocket, int packetSize, int *bytes, char *fmt, ...) {
                 (int) strlen(buffer),
                 packetSize,
                 buffer);
+    
+    char *calcBuffer = malloc(PACKET_SIZE_INDIC + strlen(buffer) + 1);
+    snprintf(   calcBuffer, PACKET_SIZE_INDIC + strlen(buffer) + 1, "%.3x%s",
+                (int) strlen(buffer),
+                buffer);
 
-    int CRC = computeCRC(amendedBuffer, PACKET_SIZE_INDIC + packetSize);
+    printf("%ld %s\n", strlen(calcBuffer), calcBuffer);
+
+    int CRC = computeCRC(calcBuffer, strlen(calcBuffer));
     char *crcedBuffer = malloc(PACKET_SIZE_INDIC + CRC_SIZE + packetSize + 1);
     snprintf(   crcedBuffer, 
-                PACKET_SIZE_INDIC + CRC_SIZE + packetSize, 
+                PACKET_SIZE_INDIC + CRC_SIZE + packetSize + 1, 
                 "%.4x%s",
                 CRC,
                 amendedBuffer);
@@ -137,7 +140,7 @@ int sendPacket(int localSocket, int packetSize, int *bytes, char *fmt, ...) {
     free(amendedBuffer);
     free(crcedBuffer);
 
-    return size;
+    return size + 1;
 }
 
 char* receiveMessage(int localSocket, int packetSize, char *init) {
@@ -149,7 +152,6 @@ char* receiveMessage(int localSocket, int packetSize, char *init) {
 
     printf("INIT WAS %s\n", init);
     long value = 0;
-    int indexOf0x = 0;
     for (int i = 0; i < strlen(init); i++)
         if (init[i] == '0' && value == 0)
             value = strtol(init + i, NULL, 0);
@@ -161,7 +163,7 @@ char* receiveMessage(int localSocket, int packetSize, char *init) {
     for (long i = 0; i < value; i++) {
         *status = receivePacket(localSocket, packetSize, bytes, packet);
         // CHECK CRC
-        if (strlen(packet) > 0) {
+        if (strlen(packet) > 0 && *status != -1) {
             printf("RECEIVING SOMETHING %ld %s\n", strlen(packet), packet);
 
             sendPacket(localSocket, COMMAND_SIZE, bytes, "%s", STATUS_OK);
@@ -178,20 +180,29 @@ char* receiveMessage(int localSocket, int packetSize, char *init) {
 
 int receivePacket(int localSocket, int packetSize, int *bytes, char* buffer) {
     char *CRC = malloc(CRC_SIZE + 1), *contentSize = malloc(PACKET_SIZE_INDIC + 1),
-         *packet = malloc(packetSize + CRC_SIZE + PACKET_SIZE_INDIC + 1);
+         *packet = malloc(packetSize + CRC_SIZE + PACKET_SIZE_INDIC + 1), 
+         *fullPacket = malloc(packetSize + PACKET_SIZE_INDIC + 1);
+    
     *bytes = recv(localSocket, packet, packetSize + CRC_SIZE + PACKET_SIZE_INDIC, 0);
     
     snprintf(CRC, CRC_SIZE + 1, "%s", packet);
+    
     snprintf(contentSize, PACKET_SIZE_INDIC + 1, "%s", packet + CRC_SIZE);
-
-
     int size = (int) strtol(contentSize, NULL, 16);
+    
+    snprintf(fullPacket, size + PACKET_SIZE_INDIC + 1, "%s", packet + CRC_SIZE);
+    int arrivedCRC = (int) strtol(CRC, NULL, 16);
+    int calculatedCRC = computeCRC(fullPacket, strlen(fullPacket));
+/* 
+    printf("\"002OK\" => %.4x\t", computeCRC("002OK", 5));
 
+    printf("CRC %.4x %.4x %ld %s %s\n", arrivedCRC, calculatedCRC, strlen(fullPacket), fullPacket, packet);
+ */
     snprintf(buffer, size + 1, "%s", packet + CRC_SIZE + PACKET_SIZE_INDIC);
 
-    free(contentSize); free(packet);
-    
-    return size;
+    free(CRC); free(contentSize); free(packet); free(fullPacket);
+
+    return (arrivedCRC != calculatedCRC) ? -1 : size;
 }
 
 /** @brief Receives a unary packet.
