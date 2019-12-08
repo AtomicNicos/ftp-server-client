@@ -92,7 +92,7 @@ int sendPacket(int localSocket, int packetSize, int *bytes, char *fmt, ...) {
                 packetSize + PACKET_SIZE_INDIC,
                 amendedBuffer);
 
-    printf("SENDING |%c| %s|\n", crcedBuffer[0], crcedBuffer);
+    printf("SENDING |%c| |%s|\n", crcedBuffer[0], crcedBuffer);
     *bytes = send(localSocket, crcedBuffer, CRC_SIZE + PACKET_SIZE_INDIC + packetSize, 0);
     int size = strlen(crcedBuffer);
 
@@ -151,7 +151,7 @@ int receivePacket(int localSocket, int packetSize, int *bytes, char* buffer) {
     memset(packet, 0, packetSize + CRC_SIZE + PACKET_SIZE_INDIC + 1); memset(fullPacket, 0, packetSize + PACKET_SIZE_INDIC + 1);
     
     *bytes = recv(localSocket, packet, packetSize + CRC_SIZE + PACKET_SIZE_INDIC, 0);
-    printf("RECEIVED PACKET |%c| %s|\n", packet[0], packet);
+    printf("RECEIVED PACKET |%c| |%s|\n", packet[0], packet);
 
     snprintf(CRC, CRC_SIZE + 1, "%s", packet);
     snprintf(contentSize, PACKET_SIZE_INDIC + 1, "%s", packet + CRC_SIZE);
@@ -162,7 +162,9 @@ int receivePacket(int localSocket, int packetSize, int *bytes, char* buffer) {
     int calculatedCRC = computeCRC(fullPacket, strlen(fullPacket));
 
     snprintf(buffer, size + 1, "%s", packet + CRC_SIZE + PACKET_SIZE_INDIC);
-    printf("BUFfER = %s|\n", buffer);
+    
+    if (size > 0 && arrivedCRC == calculatedCRC) 
+        printf("BUFFER = |%s|\n", buffer);
 
     free(CRC); free(contentSize); free(packet); free(fullPacket);
 

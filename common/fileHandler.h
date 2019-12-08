@@ -2,6 +2,7 @@
 #define HEADER_COMMON_FILES
 
 int isValidPath(char *path);
+long long getLength(char *path);
 
 
 #endif

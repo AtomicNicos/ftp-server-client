@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
         char *buffer = malloc(FRAME_SIZE + BUFFER_SIZE);
         int clientConnected = 1;
         do {
-            memset(buffer, 0, BUFFER_SIZE);
+            memset(buffer, 0, FRAME_SIZE + BUFFER_SIZE);
             *_status = receivePacket(client, COMMAND_SIZE, _bytes, buffer);
             pprint(_bytes, _contentSize, _status, buffer, 0);
 

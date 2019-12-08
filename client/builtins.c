@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "../common/utils.h"
+#include "../common/fileHandler.h"
 #include "builtins.h"
 
 /** @brief Prints a nice prompt.
@@ -36,6 +37,12 @@ char* list(int *_argc, char **_argv) {
 char* upload(int *_argc, char **_argv) {
     if (*_argc < 2)
         (WARN("-upload: insufficient arguments.", "ul <file> [...]"));
+    for (int i = 1; i < *_argc; i++) {
+        char *file = malloc(FILENAME_MAX + 1);
+        snprintf(file, FILENAME_MAX, "%s/client/~/%s", getenv("PWD"), _argv[i]);
+        printf("%lld <- %s\n", getLength(file), file);
+        free(file);
+    }
     return "builtin upload";
 }
 
