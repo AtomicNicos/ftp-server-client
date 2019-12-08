@@ -62,13 +62,12 @@ int main(int argc, char **argv) {
         }
 
         char *buffer = malloc(FRAME_SIZE + BUFFER_SIZE);
-        memset(buffer, 0, BUFFER_SIZE);
         int clientConnected = 1;
         do {
+            memset(buffer, 0, BUFFER_SIZE);
             *_status = receivePacket(client, COMMAND_SIZE, _bytes, buffer);
             pprint(_bytes, _contentSize, _status, buffer, 0);
 
-            printf("\n");
             if (*_bytes == 0) {
                 printf("Received no bytes from the client.\n");
             }
@@ -79,7 +78,7 @@ int main(int argc, char **argv) {
                 printf("RECEIVING MSG\n");
                 receiveMessage(client, COMMAND_SIZE, buffer);
             }
-            sleep(3);
+            //sleep(3);
         } while (clientConnected == 1);
         free(buffer);
         close(client);
