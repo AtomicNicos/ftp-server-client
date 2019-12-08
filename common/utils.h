@@ -37,7 +37,7 @@ int sendMessage(int localSocket, char *message, int packetSize, char *response);
 //int sendPacket(int localSocket, int packetNum, int maxPacketNum, int packetSize, int *nsent, char* fmt, ...);
 int sendPacket(int localSocket, int packetSize, int *bytes, char *fmt, ...);
 
-char* receiveMessage(int localSocket, char *init);
+char* receiveMessage(int localSocket, int packetSize, char *init);
 
 //int receivePacket(int localSocket, int maxSize, int *nrecvd, int *contentSize, char *buffer);
 int receivePacket(int localSocket, int packetSize, int *bytes, char* buffer);

@@ -77,8 +77,9 @@ int main(int argc, char **argv) {
                 clientConnected = 0;
             } else if (strncmp(buffer, "BRDCST MSG", 10) == 0) {
                 printf("RECEIVING MSG\n");
-                receiveMessage(client, buffer);
+                receiveMessage(client, COMMAND_SIZE, buffer);
             }
+            sleep(3);
         } while (clientConnected == 1);
         free(buffer);
         close(client);

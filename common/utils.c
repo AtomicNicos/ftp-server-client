@@ -24,37 +24,42 @@ void pprint(int *bytes, int *contentSize, int *status, char *content, int sent) 
 }
 
 int sendMessage(int localSocket, char *message, int packetSize, char *response) {
-    // -> BRDCST
-    // <- OK
-    // -> DATA (-> D_n | <- OK n)
-    // -> DONE
-    // <- OK
-
     int size = (int) (strlen(message) / COMMAND_SIZE) + 1;
-    int *nrecvd = malloc(sizeof(int));
     int *bytes = malloc(sizeof(int));
     int *contentSize = malloc(sizeof(int));
     int *status = malloc(sizeof(int));
 
-    *status = sendPacket(localSocket, 1, 1, COMMAND_SIZE, bytes, "%s %s %i", CMD_BROADCAST, "MSG", size);
-    *status = receivePacket(localSocket, COMMAND_SIZE, nrecvd, contentSize, response);
-    
-    pprint(nrecvd, contentSize, status, response, 0);
+    *status = sendPacket(localSocket, COMMAND_SIZE, bytes, "%s %s 0x%.16x", CMD_BROADCAST, "MSG", size);
 
-    for (int i = 0; i < size; i++) {
-        char *packet = malloc(COMMAND_SIZE + 1);
-        snprintf(packet, COMMAND_SIZE + 1, "%s", message + (i * COMMAND_SIZE));
-        *status = sendPacket(localSocket, i + 1, size, COMMAND_SIZE + 1, bytes, "%s", packet);
-        printf("PACKET %i %s\n", i, packet);
-        free(packet);
-        char *response = malloc(COMMAND_SIZE + 1);
-        *status = receivePacket(localSocket, COMMAND_SIZE, nrecvd, contentSize, response);
-        
-        printf("STAT %d | %s\n", *status, response);
-        if (*status != 0)
-            i--;
+    printf("SENT THIS\n");
+
+    *status = receivePacket(localSocket, COMMAND_SIZE, bytes, response);
+    printf("RECVD THIS\n");
+    pprint(bytes, status, status, response, 0);
+
+    printf("THE RESPONSE WAS %s\n", response);
+    if (strncmp(response, STATUS_OK, strlen(STATUS_OK)) == 0) {
+        for (int i = 0; i < size; i++) {
+            char *packet = malloc(packetSize + 1);
+            snprintf(packet, COMMAND_SIZE + 1, "%s", message + (i * COMMAND_SIZE));
+            *status = sendPacket(localSocket, COMMAND_SIZE + 1, bytes, "%s", packet);
+            printf("PACKET %i %s\n", i, packet);
+            free(packet);
+
+            char *response = malloc(COMMAND_SIZE + 1);
+            *status = receivePacket(localSocket, COMMAND_SIZE, bytes, response);
+
+            if (strncmp(response, STATUS_OK, strlen(STATUS_OK)) == 0) {
+                printf("PACKET %d OK\n", i);
+            } else if (strncmp(response, STATUS_ERR, strlen(STATUS_ERR)) == 0) {
+                printf("PACKET ERR %d\n", i);
+                i--;
+            }
+
+            free(response);
+        }
     }
-    free(nrecvd);
+    
     free(bytes);
     free(contentSize);
     free(status);
@@ -71,7 +76,7 @@ int sendMessage(int localSocket, char *message, int packetSize, char *response) 
  * @param __VA_ARGS_    The packet's contents
  * @return 0 if OK else -1 an error was detected.
  */
-int sendPacket(int localSocket, int packetNum, int maxPacketNum, int packetSize, int *bytes, char* fmt, ...) {
+/*int sendPacket(int localSocket, int packetNum, int maxPacketNum, int packetSize, int *bytes, char* fmt, ...) {
     char *buffer = malloc(packetSize);
     va_list args;
     va_start(args, fmt);
@@ -101,19 +106,83 @@ int sendPacket(int localSocket, int packetNum, int maxPacketNum, int packetSize,
     free(amendedBuffer);
     free(buffer);
     return (*bytes != packetSize + FRAME_SIZE) ? 0 : 1;
+}*/
+
+int sendPacket(int localSocket, int packetSize, int *bytes, char *fmt, ...) {
+    char *buffer = malloc(packetSize);
+    va_list args;
+    va_start(args, fmt);
+    vsprintf(buffer, fmt, args);
+    va_end(args);
+
+    char *amendedBuffer = malloc(PACKET_SIZE_INDIC + packetSize + 1);
+    snprintf(   amendedBuffer, 
+                PACKET_SIZE_INDIC + packetSize, 
+                "%.3x%-*s",
+                (int) strlen(buffer),
+                packetSize,
+                buffer);
+
+    char *crcedBuffer = malloc(PACKET_SIZE_INDIC + CRC_SIZE + packetSize + 1);
+
+    printf("SENDING %s\n", amendedBuffer);
+    *bytes = send(localSocket, amendedBuffer, PACKET_SIZE_INDIC + packetSize, 0);
+    int size = strlen(amendedBuffer);
+    free(amendedBuffer);
+
+    return size;
 }
 
-char* receiveMessage(int localSocket, char *init) {
+char* receiveMessage(int localSocket, int packetSize, char *init) {
     int *nrecvd = malloc(sizeof(int));
     int *bytes = malloc(sizeof(int));
-    int *contentSize = malloc(sizeof(int));
     int *status = malloc(sizeof(int));
     
-    *status = sendPacket(localSocket, 1, 1, COMMAND_SIZE, bytes, "%s", STATUS_OK);
-    *contentSize = strlen(STATUS_OK);
-    pprint(bytes, contentSize, status, STATUS_OK, 1);
+    *status = sendPacket(localSocket, COMMAND_SIZE, bytes, "%s", STATUS_OK);
 
-    return "";
+    printf("INIT WAS %s\n", init);
+    long value = 0;
+    int indexOf0x = 0;
+    for (int i = 0; i < strlen(init); i++)
+        if (init[i] == '0' && value == 0)
+            value = strtol(init + i, NULL, 0);
+    
+    printf ("VALUE %ld\n", value);
+    char *message = malloc(packetSize * value + 1);
+    char *packet = malloc(packetSize + 1);
+
+    for (long i = 0; i < value; i++) {
+        *status = receivePacket(localSocket, packetSize, bytes, packet);
+        // CHECK CRC
+        if (strlen(packet) > 0) {
+            printf("RECEIVING SOMETHING %ld %s\n", strlen(packet), packet);
+
+            sendPacket(localSocket, COMMAND_SIZE, bytes, "%s", STATUS_OK);
+            strncat(message, packet, packetSize);
+        } else 
+            i--;
+    }
+    free(packet);
+
+    printf("MESSAGE IS %s\n", message);
+    
+    return message;
+}
+
+int receivePacket(int localSocket, int packetSize, int *bytes, char* buffer) {
+    char *contentSize = malloc(4),
+         *packet = malloc(packetSize + PACKET_SIZE_INDIC + 1);
+    *bytes = recv(localSocket, packet, packetSize + PACKET_SIZE_INDIC, 0);
+    
+    snprintf(contentSize, PACKET_SIZE_INDIC + 1, "%s", packet);
+
+    int size = (int) strtol(contentSize, NULL, 16);
+
+    snprintf(buffer, size + 1, "%s", packet + PACKET_SIZE_INDIC);
+
+    free(contentSize); free(packet);
+    
+    return size;
 }
 
 /** @brief Receives a unary packet.
@@ -124,7 +193,7 @@ char* receiveMessage(int localSocket, char *init) {
  * @param buffer        An external variable (*ptr) that will store the received content.
  * @return a status [0 | 0x10000 | 0x10001 | other] => [OK | Done | Excess | Error at packet number]
  */
-int receivePacket(int localSocket, int packetSize, int *nrecvd, int *_contentSize, char* buffer) {
+/*int receivePacket(int localSocket, int packetSize, int *nrecvd, int *_contentSize, char* buffer) {
     char *packetNum = malloc(5), *packetMax = malloc(5),
          *contentSize = malloc(4), *_crc = malloc(5), 
          *packet = malloc(packetSize + FRAME_SIZE - 4), *fullPacket = malloc(packetSize + FRAME_SIZE);
@@ -153,4 +222,4 @@ int receivePacket(int localSocket, int packetSize, int *nrecvd, int *_contentSiz
         return 0;
     else 
         return _packetNum;
-}
+}*/

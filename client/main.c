@@ -96,7 +96,6 @@ int main(int argc, char **argv) {
                 printf("%s\n", builtinCommand);
          } else {
             char buffer[4] = "TEST";
-            // *_status = sendPacket(server, 1, 1, BUFFER_SIZE, _bytes, "%s", buffer);
             *_status = sendPacket(server, BUFFER_SIZE, _bytes, "%s", buffer);
             *_len = strlen(buffer);
             pprint(_bytes, _len, _status, buffer, 1);
