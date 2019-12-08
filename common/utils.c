@@ -123,12 +123,19 @@ int sendPacket(int localSocket, int packetSize, int *bytes, char *fmt, ...) {
                 packetSize,
                 buffer);
 
+    int CRC = computeCRC(amendedBuffer, PACKET_SIZE_INDIC + packetSize);
     char *crcedBuffer = malloc(PACKET_SIZE_INDIC + CRC_SIZE + packetSize + 1);
+    snprintf(   crcedBuffer, 
+                PACKET_SIZE_INDIC + CRC_SIZE + packetSize, 
+                "%.4x%s",
+                CRC,
+                amendedBuffer);
 
-    printf("SENDING %s\n", amendedBuffer);
-    *bytes = send(localSocket, amendedBuffer, PACKET_SIZE_INDIC + packetSize, 0);
-    int size = strlen(amendedBuffer);
+    printf("SENDING %s\n", crcedBuffer);
+    *bytes = send(localSocket, crcedBuffer, CRC_SIZE + PACKET_SIZE_INDIC + packetSize, 0);
+    int size = strlen(crcedBuffer);
     free(amendedBuffer);
+    free(crcedBuffer);
 
     return size;
 }
@@ -170,15 +177,17 @@ char* receiveMessage(int localSocket, int packetSize, char *init) {
 }
 
 int receivePacket(int localSocket, int packetSize, int *bytes, char* buffer) {
-    char *contentSize = malloc(4),
-         *packet = malloc(packetSize + PACKET_SIZE_INDIC + 1);
-    *bytes = recv(localSocket, packet, packetSize + PACKET_SIZE_INDIC, 0);
+    char *CRC = malloc(CRC_SIZE + 1), *contentSize = malloc(PACKET_SIZE_INDIC + 1),
+         *packet = malloc(packetSize + CRC_SIZE + PACKET_SIZE_INDIC + 1);
+    *bytes = recv(localSocket, packet, packetSize + CRC_SIZE + PACKET_SIZE_INDIC, 0);
     
-    snprintf(contentSize, PACKET_SIZE_INDIC + 1, "%s", packet);
+    snprintf(CRC, CRC_SIZE + 1, "%s", packet);
+    snprintf(contentSize, PACKET_SIZE_INDIC + 1, "%s", packet + CRC_SIZE);
+
 
     int size = (int) strtol(contentSize, NULL, 16);
 
-    snprintf(buffer, size + 1, "%s", packet + PACKET_SIZE_INDIC);
+    snprintf(buffer, size + 1, "%s", packet + CRC_SIZE + PACKET_SIZE_INDIC);
 
     free(contentSize); free(packet);
     
