@@ -76,7 +76,8 @@ int main(int argc, char **argv) {
             if (builtinCommand == NULL) {        // Not a builtin
                 if (*_argc == 1 && strncmp("exit", _argv[0], 4) == 0) {
                     if (strlen(_argv[0]) == 4) {
-                        *_status = sendPacket(server, 404, 520, BUFFER_SIZE, _bytes, "%s", CMD_EXIT);
+                        //_status = sendPacket(server, 404, 520, BUFFER_SIZE, _bytes, "%s", CMD_EXIT);
+                        *_status = sendPacket(server, COMMAND_SIZE, _bytes, "%s", CMD_EXIT);
                         *_len = strlen(CMD_EXIT);
                         pprint(_bytes, _len, _status, CMD_EXIT, 1);
 
@@ -95,7 +96,8 @@ int main(int argc, char **argv) {
                 printf("%s\n", builtinCommand);
          } else {
             char buffer[4] = "TEST";
-            *_status = sendPacket(server, 1, 1, BUFFER_SIZE, _bytes, "%s", buffer);
+            // *_status = sendPacket(server, 1, 1, BUFFER_SIZE, _bytes, "%s", buffer);
+            *_status = sendPacket(server, BUFFER_SIZE, _bytes, "%s", buffer);
             *_len = strlen(buffer);
             pprint(_bytes, _len, _status, buffer, 1);
          }

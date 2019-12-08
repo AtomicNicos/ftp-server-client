@@ -65,21 +65,20 @@ int main(int argc, char **argv) {
         memset(buffer, 0, BUFFER_SIZE);
         int clientConnected = 1;
         do {
-            *_status = receivePacket(client, COMMAND_SIZE, _bytes, _contentSize, buffer);
+            *_status = receivePacket(client, COMMAND_SIZE, _bytes, buffer);
             pprint(_bytes, _contentSize, _status, buffer, 0);
 
             printf("\n");
             if (*_bytes == 0) {
                 printf("Received no bytes from the client.\n");
             }
-            if (*_contentSize == 4 && strncmp(buffer, CMD_EXIT, 4) == 0) {
+            if (*_status == 4 && strncmp(buffer, CMD_EXIT, 4) == 0) {
                 printf("BYE\n");
                 clientConnected = 0;
             } else if (strncmp(buffer, "BRDCST MSG", 10) == 0) {
                 printf("RECEIVING MSG\n");
                 receiveMessage(client, buffer);
             }
-
         } while (clientConnected == 1);
         free(buffer);
         close(client);

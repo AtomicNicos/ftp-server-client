@@ -34,13 +34,14 @@ void printColorized(char *string, int ANSI_FGCOLOR, int ANSI_BGCOLOR, int ANSI_D
 
 int sendMessage(int localSocket, char *message, int packetSize, char *response);
 
-int sendPacket(int localSocket, int packetNum, int maxPacketNum, int packetSize, int *nsent, char* fmt, ...);
+//int sendPacket(int localSocket, int packetNum, int maxPacketNum, int packetSize, int *nsent, char* fmt, ...);
+int sendPacket(int localSocket, int packetSize, int *bytes, char *fmt, ...);
 
 char* receiveMessage(int localSocket, char *init);
 
-int receivePacket(int localSocket, int maxSize, int *nrecvd, int *contentSize, char *buffer);
+//int receivePacket(int localSocket, int maxSize, int *nrecvd, int *contentSize, char *buffer);
+int receivePacket(int localSocket, int packetSize, int *bytes, char* buffer);
 
 void pprint(int *bytes, int *contentSize, int *status, char *content, int sent);
-
 
 #endif
