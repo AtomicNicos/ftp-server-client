@@ -1,8 +1,11 @@
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdarg.h>
+#include <signal.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -14,18 +17,30 @@
 #include "lineReader.h"
 #include "builtins.h"
 
-void handShake(int server) {
+int server, clientShouldRun = 1;
 
+/** @brief Handles signals.... 
+ * @param signo The signal number.
+ */
+void signalHandler(int signo) {
+    if (signo == SIGINT || signo == SIGTERM || signo == SIGQUIT || signo == SIGHUP) {
+        int *bytes = malloc(sizeof(int));
+        sendPacket(server, COMMAND_SIZE, bytes, "%s", CMD_EXIT);
+        clientShouldRun = 0;
+        free(bytes);
+    } else
+        printf("WTF\n");
 }
 
 int main(int argc, char **argv) {
+
     if (argc != 1)
         FAIL_SUCCESFULLY("TOO MANY parameters");
     crcInit();
 
     struct sockaddr_in serv_addr;
     memset(&serv_addr, 0, sizeof(serv_addr));
-    int local_socket, server;
+    int local_socket;
 
     printf("START\n");
 
@@ -50,7 +65,10 @@ int main(int argc, char **argv) {
     memset(distant_cwd, 0, FILENAME_MAX);
     strncat(distant_cwd, "~", FILENAME_MAX);
 
-    int clientShouldRun = 1;
+    struct sigaction action;    // Define signal handlers and sh*zz.
+    memset(&action, 0, sizeof(action));
+    action.sa_handler = signalHandler;
+    sigaction(SIGINT, &action, NULL);
 
     char *response = malloc(COMMAND_SIZE + 1);
     sendMessage(server, "ERNUCNFOWBGYLRFCCRWFHKRYBYBKTGFNMYXZQSJYVKOZVFYXYHTOSYIKEGNIRBWZKLSPVGGGBCKBETEGQYYYSTTFYLVPGXQJGZZCDUIHNTVBBKTHPMZKSQGCZSLCFRKENUNSFISGQJLYDHZEVPLORVKLNJBGNEEEBXVKHJDCTGQOMRLZJOLYXBVVFZJIGZIWOHEGTXRUWDMMLTFWIDLLFQJMFOQWJNPSNCCDBMJPEYNXQFKSJQGTJOZGWMMRJMCRXCFBHXJRNSDXQQVXMMDJYEEIHPRPSLDDWRLUXBJUIRUSZGLOMNDWHBEZNTUDYIJXWTGZKGDWDZLROWMYMFZQDOLQVQCFQLCCRTPQCPOJXNEHSRLMKGFYUDZNVPDNRCYEEDNDJRBMRLZBPZFQSMCOHBUZJZKCEYFMZVKVYZITCEXUUWJGNIQJYDTVLQRJGWUKRZXXDKORKLULQBHUZKLZSNFCVQSGVKYHWPTWLTRXLLDEPCNNMXQVEUQVISHPEUFITZERDZEOYSZOXNXQISBPNCT", COMMAND_SIZE, response);
@@ -61,7 +79,7 @@ int main(int argc, char **argv) {
 
         char *line = getLine(); // Get user input.
 
-        // CHECK SERVER IS ALIVE
+        // TODO CHECK SERVER IS ALIVE
 
         int *_argc = malloc(sizeof(int));
         char **_argv = splitLine(line, _argc);  // Generate an asymmetrical component holder of vacuous contents or some such bs.
@@ -72,7 +90,7 @@ int main(int argc, char **argv) {
         int *_len = malloc(sizeof(int));
 
         if (*_argc > 0) {
-            char * builtinCommand = executeBuiltin(_argc, _argv);
+            char * builtinCommand = executeBuiltin(server, _argc, _argv);
             if (builtinCommand == NULL) {        // Not a builtin
                 if (*_argc == 1 && strncmp("exit", _argv[0], 4) == 0) {
                     if (strlen(_argv[0]) == 4) {

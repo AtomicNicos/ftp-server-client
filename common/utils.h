@@ -3,6 +3,8 @@
 
 #include <stdio.h> /*   fprintf     */
 
+typedef unsigned long long ull;
+
 #define PORT 4242
 #define BACKLOG 10
 #define EXIT_FAILURE 1
@@ -43,5 +45,8 @@ char* receiveMessage(int localSocket, int packetSize, char *init);
 int receivePacket(int localSocket, int packetSize, int *bytes, char* buffer);
 
 void pprint(int *bytes, int *contentSize, int *status, char *content, int sent);
+
+int receiveFile(int localSocket);
+int sendFile(int localSocket, char *path);
 
 #endif

@@ -70,8 +70,7 @@ int main(int argc, char **argv) {
 
             if (*_bytes == 0) {
                 printf("Received no bytes from the client.\n");
-            }
-            if (*_status == 4 && strncmp(buffer, CMD_EXIT, 4) == 0) {
+            } else if (*_status == 4 && strncmp(buffer, CMD_EXIT, 4) == 0) {
                 printf("BYE\n");
                 clientConnected = 0;
             } else if (strncmp(buffer, "BRDCST MSG", 10) == 0) {

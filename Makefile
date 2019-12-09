@@ -1,6 +1,6 @@
 CC=gcc
 CCFLAGS=-Wall -g
-#LDFLAGS=
+LDFLAGS=
 COMPNAME=nicolas_boeckh_ftp
 
 SOURCES_COMMON=$(wildcard common/*.c)
@@ -21,22 +21,10 @@ $(TARGET_CLIENT): $(OBJECTS_CLIENT)
 $(TARGET_SERVER): $(OBJECTS_SERVER)
 		$(CC) -o server/$@ $^ $(LDFLAGS)
 
-client/%.o: %.c %.h
+*/%.o: %.c %.h
 		$(CC) $(CCFLAGS) -c $<
 
-client/%.o: %.c
-		$(CC) $(CCFLAGS) -c $<
-
-server/%.o: %.c %.h
-		$(CC) $(CCFLAGS) -c $<
-
-server/%.o: %.c
-		$(CC) $(CCFLAGS) -c $<
-
-common/%.o: %.c %.h
-		$(CC) $(CCFLAGS) -c $<
-
-common/%.o: %.c
+*/%.o: %.c
 		$(CC) $(CCFLAGS) -c $<
 
 clean:

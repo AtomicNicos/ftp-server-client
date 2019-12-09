@@ -1,8 +1,10 @@
 #ifndef HEADER_COMMON_FILES
 #define HEADER_COMMON_FILES
 
+#include "utils.h"
+
 int isValidPath(char *path);
-long long getLength(char *path);
+ull getLength(char *path);
 
 
 #endif

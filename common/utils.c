@@ -150,8 +150,9 @@ int receivePacket(int localSocket, int packetSize, int *bytes, char* buffer) {
     memset(CRC, 0, CRC_SIZE + 1); memset(contentSize, 0, PACKET_SIZE_INDIC + 1);
     memset(packet, 0, packetSize + CRC_SIZE + PACKET_SIZE_INDIC + 1); memset(fullPacket, 0, packetSize + PACKET_SIZE_INDIC + 1);
     
-    *bytes = recv(localSocket, packet, packetSize + CRC_SIZE + PACKET_SIZE_INDIC, 0);
-    printf("RECEIVED PACKET |%c| |%s|\n", packet[0], packet);
+    *bytes =  recv(localSocket, packet, packetSize + CRC_SIZE + PACKET_SIZE_INDIC, 0);
+    
+    //printf("RECEIVED PACKET |%c| |%s|\n", packet[0], packet);
 
     snprintf(CRC, CRC_SIZE + 1, "%s", packet);
     snprintf(contentSize, PACKET_SIZE_INDIC + 1, "%s", packet + CRC_SIZE);

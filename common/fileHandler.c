@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
-
+#include "utils.h"
 #include "fileHandler.h"
 
 int isValidPath(char *path) {
@@ -16,7 +16,7 @@ int isValidPath(char *path) {
     return (status == 0 && (S_ISDIR(mode) || S_ISLNK(mode) || S_ISREG(mode))) ? 1 : 0;
 }
 
-long long getLength(char *path) {
+ull getLength(char *path) {
     if (isValidPath(path) == 1) {
         long long length;
         FILE *f = fopen(path, "rb");
