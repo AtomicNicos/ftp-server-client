@@ -75,78 +75,65 @@ int main(int argc, char **argv) {
     sendData(server, instruction, data);
 
     do {
-        print_prompt(env_user, serverAddress, distant_cwd);
 
         memset(instruction, 0, INSTR_SIZE + 1);
         memset(data, 0, BUFFER_SIZE + 1);
 
+        printf("\n");
         sendData(server, CMD_PING, "");
         int size = recvData(server, instruction, data);
         printf("RESPONSE SIZE %d AND INSTR |%s|\n", size, instruction);
-        if (size == 0 && strncmp(instruction, CMD_PONG, strlen(CMD_PONG)) == 0) {
-            printf("SERVER PONGED\n");
-        }
-
-        char *line = getLine(); // Get user input.
-
-        ull *_bytes = malloc(sizeof(ull));
-        int *_status = malloc(sizeof(int));
-        int *_len = malloc(sizeof(int));
-        //char *response = malloc(COMMAND_SIZE + 1);
-        // TODO Perhaps check server liveliness
-        sendData(local_socket, "PONG", "");
-        recvData(local_socket, instruction, data);
-
-        if (*_status < 0) {
+        if (size == 0 && strncmp(instruction, CMD_PONG, strlen(CMD_PONG)) != 0) {
             clientShouldRun = 0;
-        }
+        } else if (size == 0 && strncmp(instruction, STATUS_ERR, strlen(STATUS_ERR)) == 0) {
+            printf("ERROR\n");
+        } else {
+            printf("SERVER PONGED\n");
+
+            print_prompt(env_user, serverAddress, distant_cwd);
+            char *line = getLine(); // Get user input.
+            int *_argc = malloc(sizeof(int));
+            char **_argv = splitLine(line, _argc);  // Generate an asymmetrical component holder of vacuous contents or some such bs.
+            
+            printf("ARGC %i\n", *_argc);
+
+            if (*_argc > 0 && clientShouldRun == 1) {
+                char * builtinCommand = executeBuiltin(server, _argc, _argv);
+                if (builtinCommand == NULL) {        // Not a builtin
+                    if (*_argc == 1 && strncmp("exit", _argv[0], 4) == 0) {
+                        if (strlen(_argv[0]) == 4) {
+                            sendData(server, CMD_EXIT, "");
+                            //*_status = sendPacket(server, COMMAND_SIZE, _bytes, "%s", CMD_EXIT);
+                            // EXIT handShake
+                            printf("Bye\n");    // Leave.
+                            
+                            clientShouldRun = 0;
+                        } else 
+                            fprintf(stderr, "\nCommand '%s' not found, did you mean:\n\n  command 'exit' from deb trolling-you.\n\nTry: sudo apt install <deb name>\n\n", _argv[0]);
+                    } else {
+                        fprintf(stderr, "\nCommand '%s' not found.\n\n", _argv[0]);
+                    }
+                } else if (strlen(builtinCommand) == 2 && strncmp(builtinCommand, "NO", 2) == 0) {
+                    printf("ERROR %s\n", builtinCommand);
+                } else 
+                    printf("%s\n", builtinCommand);
+            }
+                
+            // TODO Perhaps check server liveliness
         
-        printf("LINE \n");
+            // Cleanup
+            for (int i = 0; i < *_argc; i++) {
+                _argv[i] = realloc(_argv[i], 0);
+                _argv[i] = NULL;
+            }
 
-        int *_argc = malloc(sizeof(int));
-        char **_argv = splitLine(line, _argc);  // Generate an asymmetrical component holder of vacuous contents or some such bs.
-        
-        printf("ARGC %i\n", *_argc);
+            memset(_argc, 0, sizeof(int));
 
-        if (*_argc > 0 && clientShouldRun == 1) {
-            char * builtinCommand = executeBuiltin(server, _argc, _argv);
-            if (builtinCommand == NULL) {        // Not a builtin
-                if (*_argc == 1 && strncmp("exit", _argv[0], 4) == 0) {
-                    if (strlen(_argv[0]) == 4) {
-                        //*_status = sendPacket(server, COMMAND_SIZE, _bytes, "%s", CMD_EXIT);
-                        *_len = strlen(CMD_EXIT);
-                        pprint(_bytes, _len, _status, CMD_EXIT, 1);
-
-                        // EXIT handShake
-                        printf("Bye\n");    // Leave.
-                        
-                        clientShouldRun = 0;
-                    } else 
-                        fprintf(stderr, "\nCommand '%s' not found, did you mean:\n\n  command 'exit' from deb trolling-you.\n\nTry: sudo apt install <deb name>\n\n", _argv[0]);
-                } else {
-                    fprintf(stderr, "\nCommand '%s' not found.\n\n", _argv[0]);
-                }
-            } else if (strlen(builtinCommand) == 2 && strncmp(builtinCommand, "NO", 2) == 0) {
-                printf("ERROR %s\n", builtinCommand);
-            } else 
-                printf("%s\n", builtinCommand);
-         }
-
-        free(_bytes);
-        free(_status);
-        free(_len);
-
-         // Cleanup
-        for (int i = 0; i < *_argc; i++) {
-            _argv[i] = realloc(_argv[i], 0);
-            _argv[i] = NULL;
+            free(line);
+            free(_argv);
+            _argc = realloc(_argc, 0);
         }
 
-        memset(_argc, 0, sizeof(int));
-
-        free(line);
-        free(_argv);
-        _argc = realloc(_argc, 0);
     } while (clientShouldRun == 1);
 
     free(instruction);

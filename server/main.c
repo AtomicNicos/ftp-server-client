@@ -70,36 +70,22 @@ int main(int argc, char **argv) {
         do {
             char *instruction = malloc(INSTR_SIZE + 1);
             char *data = malloc(BUFFER_SIZE + 1);
-            recvData(client, instruction, data);
+            int size = recvData(client, instruction, data);
             printf("%ld INSTR |%s|\n", strlen(instruction), instruction);
             printf("%ld TEXT |%s|\n", strlen(data), data);
 
-            if (strncmp(instruction, CMD_PING, strlen(CMD_PING))) {
+            if (size == 0 && strncmp(instruction, CMD_PING, strlen(CMD_PING)) == 0) {
                 printf("CLIENT PINGED\n");
                 memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
                 snprintf(instruction, INSTR_SIZE + 1, "%s", CMD_PONG);
                 snprintf(data, BUFFER_SIZE + 1, "%s", "");
                 sendData(client, instruction, data);
+            } else if (size == 0 && strncmp(instruction, CMD_EXIT, strlen(CMD_EXIT)) == 0) {
+                printf("CLIENT EXITED\n");
+                clientConnected = 0;
             }
 
-            if (*_status != -1) {
-                pprint(_bytes, _contentSize, _status, buffer, 0);
-
-                if (*_bytes == 0) {
-                    printf("Client closed its session.\n");
-                    clientConnected = 0;
-                } else if (*_status == 4 && strncmp(buffer, CMD_EXIT, 4) == 0) {
-                    printf("BYE\n");
-                    clientConnected = 0;
-                } else if (strncmp(buffer, "BRDCST MSG", 10) == 0) {
-                    printf("RECEIVING MSG\n");
-                    //receiveMessage(client, COMMAND_SIZE, buffer);
-                } else if (strncmp(buffer, "BRDCST UL", 9) == 0) {
-                    printf("RECEIVING A CERTAIN NUMBER OF FILES\n");
-                    //receiveFile(client, buffer);
-                }
-            }
-            //sleep(3);
+            usleep(2000);
             free(instruction);
             free(data);
         } while (clientConnected == 1);

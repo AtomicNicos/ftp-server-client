@@ -43,7 +43,7 @@ int sendData(int localSocket, char instruction[INSTR_SIZE], char data[BUFFER_SIZ
                 CRC,
                 amendedBuffer);
 
-    printf("SENDING <%ld> |%s|\n", strlen(crcedBuffer), crcedBuffer);
+    printf("SENDING <%ld> |%s|\n", strlen(crcedBuffer), instruction);
     int size = send(localSocket, crcedBuffer, PACKET_SIZE, 0);
 
     free(amendedBuffer); free(crcedBuffer);
