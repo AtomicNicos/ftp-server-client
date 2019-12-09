@@ -86,7 +86,7 @@ int sendPacket(int localSocket, int packetSize, int *bytes, char *fmt, ...) {
     int CRC = computeCRC(amendedBuffer, strlen(amendedBuffer));
     char *crcedBuffer = malloc(PACKET_SIZE_INDIC + CRC_SIZE + packetSize + 1);
     snprintf(   crcedBuffer, 
-                PACKET_SIZE_INDIC + CRC_SIZE + packetSize + 1, 
+                PACKET_SIZE_INDIC + CRC_SIZE + packetSize, 
                 "%.4x%-*s",
                 CRC,
                 packetSize + PACKET_SIZE_INDIC,
