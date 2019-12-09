@@ -4,7 +4,7 @@
 #include "utils.h"
 
 int isValidPath(char *path);
-ull getLength(char *path);
+sll getLength(char *path);
 
 
 #endif

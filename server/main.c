@@ -14,6 +14,7 @@
 //\033[%i;%i;%im%s\033[0m
 
 int main(int argc, char **argv) {
+    // SETUP
     crcInit();
 
     struct sockaddr_in serv_addr, client_addr;
@@ -40,8 +41,11 @@ int main(int argc, char **argv) {
 
     int programShouldRun = 1;   // Non descript.
     int client;
-    int *_bytes = malloc(sizeof(int)), *_contentSize = malloc(sizeof(int));
-    int *_status = malloc(sizeof(int));
+    ull *_bytes = malloc(sizeof(ull));
+    int *_contentSize = malloc(sizeof(int)), *_status = malloc(sizeof(int));
+
+    // END SETUP
+    
 
     do {
         client = accept(sock, (struct sockaddr *) &client_addr, &client_addr_length);
@@ -64,20 +68,40 @@ int main(int argc, char **argv) {
         char *buffer = malloc(FRAME_SIZE + BUFFER_SIZE);
         int clientConnected = 1;
         do {
-            memset(buffer, 0, FRAME_SIZE + BUFFER_SIZE);
-            *_status = receivePacket(client, COMMAND_SIZE, _bytes, buffer);
-            pprint(_bytes, _contentSize, _status, buffer, 0);
+            char *instruction = malloc(INSTR_SIZE + 1);
+            char *data = malloc(BUFFER_SIZE + 1);
+            recvData(client, instruction, data);
+            printf("%ld INSTR |%s|\n", strlen(instruction), instruction);
+            printf("%ld TEXT |%s|\n", strlen(data), data);
 
-            if (*_bytes == 0) {
-                printf("Received no bytes from the client.\n");
-            } else if (*_status == 4 && strncmp(buffer, CMD_EXIT, 4) == 0) {
-                printf("BYE\n");
-                clientConnected = 0;
-            } else if (strncmp(buffer, "BRDCST MSG", 10) == 0) {
-                printf("RECEIVING MSG\n");
-                receiveMessage(client, COMMAND_SIZE, buffer);
+            if (strncmp(instruction, CMD_PING, strlen(CMD_PING))) {
+                printf("CLIENT PINGED\n");
+                memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
+                snprintf(instruction, INSTR_SIZE + 1, "%s", CMD_PONG);
+                snprintf(data, BUFFER_SIZE + 1, "%s", "");
+                sendData(client, instruction, data);
+            }
+
+            if (*_status != -1) {
+                pprint(_bytes, _contentSize, _status, buffer, 0);
+
+                if (*_bytes == 0) {
+                    printf("Client closed its session.\n");
+                    clientConnected = 0;
+                } else if (*_status == 4 && strncmp(buffer, CMD_EXIT, 4) == 0) {
+                    printf("BYE\n");
+                    clientConnected = 0;
+                } else if (strncmp(buffer, "BRDCST MSG", 10) == 0) {
+                    printf("RECEIVING MSG\n");
+                    //receiveMessage(client, COMMAND_SIZE, buffer);
+                } else if (strncmp(buffer, "BRDCST UL", 9) == 0) {
+                    printf("RECEIVING A CERTAIN NUMBER OF FILES\n");
+                    //receiveFile(client, buffer);
+                }
             }
             //sleep(3);
+            free(instruction);
+            free(data);
         } while (clientConnected == 1);
         free(buffer);
         close(client);

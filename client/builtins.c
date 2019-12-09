@@ -40,9 +40,18 @@ char* upload(int localSocket, int *_argc, char **_argv) {
     for (int i = 1; i < *_argc; i++) {
         char *file = malloc(FILENAME_MAX + 1);
         snprintf(file, FILENAME_MAX, "%s/client/~/%s", getenv("PWD"), _argv[i]);
-        ull fileLength = getLength(file);
-        if (fileLength >= 0)  {
+        sll fileLength = getLength(file);
 
+        printf("%lld %d\n", fileLength, fileLength >= 0 ? 1 : 0);
+        if (fileLength >= 0)  {
+            //char *response = malloc(COMMAND_SIZE + 1);
+            sll *bytes = malloc(sizeof(ull));
+            //sendPacket(localSocket, COMMAND_SIZE + 1, bytes, "%s %s 0x%.16x", CMD_BROADCAST, CMD_UPLOAD, fileLength); //TODO
+            printf("FILE LEN %lld\n", fileLength);
+            
+
+            free(bytes);
+            //free(response);
         }
         
         printf("%lld <- %s\n", getLength(file), file);

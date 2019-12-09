@@ -8,6 +8,7 @@
 
 int isValidPath(char *path) {
     struct stat* statBuffer = malloc(sizeof(struct stat));
+    memset(statBuffer, 0, sizeof(struct stat));
     int status = lstat(path, statBuffer);
     __mode_t mode = statBuffer->st_mode;
     
@@ -16,9 +17,9 @@ int isValidPath(char *path) {
     return (status == 0 && (S_ISDIR(mode) || S_ISLNK(mode) || S_ISREG(mode))) ? 1 : 0;
 }
 
-ull getLength(char *path) {
+sll getLength(char *path) {
     if (isValidPath(path) == 1) {
-        long long length;
+        sll length;
         FILE *f = fopen(path, "rb");
 
         if (f) {

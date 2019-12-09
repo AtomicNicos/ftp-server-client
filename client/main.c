@@ -24,10 +24,7 @@ int server, clientShouldRun = 1;
  */
 void signalHandler(int signo) {
     if (signo == SIGINT || signo == SIGTERM || signo == SIGQUIT || signo == SIGHUP) {
-        int *bytes = malloc(sizeof(int));
-        sendPacket(server, COMMAND_SIZE, bytes, "%s", CMD_EXIT);
         clientShouldRun = 0;
-        free(bytes);
     } else
         printf("WTF\n");
 }
@@ -70,32 +67,53 @@ int main(int argc, char **argv) {
     action.sa_handler = signalHandler;
     sigaction(SIGINT, &action, NULL);
 
-    char *response = malloc(COMMAND_SIZE + 1);
-    sendMessage(server, "ERNUCNFOWBGYLRFCCRWFHKRYBYBKTGFNMYXZQSJYVKOZVFYXYHTOSYIKEGNIRBWZKLSPVGGGBCKBETEGQYYYSTTFYLVPGXQJGZZCDUIHNTVBBKTHPMZKSQGCZSLCFRKENUNSFISGQJLYDHZEVPLORVKLNJBGNEEEBXVKHJDCTGQOMRLZJOLYXBVVFZJIGZIWOHEGTXRUWDMMLTFWIDLLFQJMFOQWJNPSNCCDBMJPEYNXQFKSJQGTJOZGWMMRJMCRXCFBHXJRNSDXQQVXMMDJYEEIHPRPSLDDWRLUXBJUIRUSZGLOMNDWHBEZNTUDYIJXWTGZKGDWDZLROWMYMFZQDOLQVQCFQLCCRTPQCPOJXNEHSRLMKGFYUDZNVPDNRCYEEDNDJRBMRLZBPZFQSMCOHBUZJZKCEYFMZVKVYZITCEXUUWJGNIQJYDTVLQRJGWUKRZXXDKORKLULQBHUZKLZSNFCVQSGVKYHWPTWLTRXLLDEPCNNMXQVEUQVISHPEUFITZERDZEOYSZOXNXQISBPNCT", COMMAND_SIZE, response);
-    free(response);
+    char *instruction = malloc(INSTR_SIZE + 1);
+    char *data = malloc(BUFFER_SIZE + 1);
+    snprintf(instruction, INSTR_SIZE + 1, "%s", "HELPHELPHELPHELPHELPHELPHELPHELP");
+    snprintf(data, BUFFER_SIZE + 1, "%s", "ERNUCNFOWBGYLRFCCRWFHKRYBYBKTGFNMYXZQSJYVKOZVFYXYHTOSYIKEGNIRBWZKLSPVGGGBCKBETEGQYYYSTTFYLVPGXQJGZZCDUIHNTVBBKTHPMZKSQGCZSLCFRKENUNSFISGQJLYDHZEVPLORVKLNJBGNEEEBXVKHJDCTGQOMRLZJOLYXBVVFZJIGZIWOHEGTXRUWDMMLTFWIDLLFQJMFOQWJNPSNCCDBMJPEYNXQFKSJQGTJOZGWMMRJMCRXCFBHXJRNSDXQQVXMMDJYEEIHPRPSLDDWRLUXBJUIRUSZGLOMNDWHBEZNTUDYIJXWTGZKGDWDZLROWMYMFZQDOLQVQCFQLCCRTPQCPOJXNEHSRLMKGFYUDZNVPDNRCYEEDNDJRBMRLZBPZFQSMCOHBUZJZKCEYFMZVKVYZITCEXUUWJGNIQJYDTVLQRJGWUKRZXXDKORKLULQBHUZKLZSNFCVQSGVKYHWPTWLTRXLLDEPCNNMXQVEUQVISHPEUFITZERDZEOYSZOXNXQISBPNCT");
+
+    sendData(server, instruction, data);
 
     do {
         print_prompt(env_user, serverAddress, distant_cwd);
 
+        memset(instruction, 0, INSTR_SIZE + 1);
+        memset(data, 0, BUFFER_SIZE + 1);
+
+        sendData(server, CMD_PING, "");
+        int size = recvData(server, instruction, data);
+        printf("RESPONSE SIZE %d AND INSTR |%s|\n", size, instruction);
+        if (size == 0 && strncmp(instruction, CMD_PONG, strlen(CMD_PONG)) == 0) {
+            printf("SERVER PONGED\n");
+        }
+
         char *line = getLine(); // Get user input.
 
-        // TODO CHECK SERVER IS ALIVE
+        ull *_bytes = malloc(sizeof(ull));
+        int *_status = malloc(sizeof(int));
+        int *_len = malloc(sizeof(int));
+        //char *response = malloc(COMMAND_SIZE + 1);
+        // TODO Perhaps check server liveliness
+        sendData(local_socket, "PONG", "");
+        recvData(local_socket, instruction, data);
+
+        if (*_status < 0) {
+            clientShouldRun = 0;
+        }
+        
+        printf("LINE \n");
 
         int *_argc = malloc(sizeof(int));
         char **_argv = splitLine(line, _argc);  // Generate an asymmetrical component holder of vacuous contents or some such bs.
         
         printf("ARGC %i\n", *_argc);
-        int *_bytes = malloc(sizeof(int));
-        int *_status = malloc(sizeof(int));
-        int *_len = malloc(sizeof(int));
 
-        if (*_argc > 0) {
+        if (*_argc > 0 && clientShouldRun == 1) {
             char * builtinCommand = executeBuiltin(server, _argc, _argv);
             if (builtinCommand == NULL) {        // Not a builtin
                 if (*_argc == 1 && strncmp("exit", _argv[0], 4) == 0) {
                     if (strlen(_argv[0]) == 4) {
-                        //_status = sendPacket(server, 404, 520, BUFFER_SIZE, _bytes, "%s", CMD_EXIT);
-                        *_status = sendPacket(server, COMMAND_SIZE, _bytes, "%s", CMD_EXIT);
+                        //*_status = sendPacket(server, COMMAND_SIZE, _bytes, "%s", CMD_EXIT);
                         *_len = strlen(CMD_EXIT);
                         pprint(_bytes, _len, _status, CMD_EXIT, 1);
 
@@ -108,15 +126,10 @@ int main(int argc, char **argv) {
                 } else {
                     fprintf(stderr, "\nCommand '%s' not found.\n\n", _argv[0]);
                 }
-            } else if (strlen(builtinCommand) == 2 && strncmp(builtinCommand, "NO", 2) == 2) {
-                printf("%s\n", builtinCommand);
+            } else if (strlen(builtinCommand) == 2 && strncmp(builtinCommand, "NO", 2) == 0) {
+                printf("ERROR %s\n", builtinCommand);
             } else 
                 printf("%s\n", builtinCommand);
-         } else {
-            char buffer[4] = "TEST";
-            *_status = sendPacket(server, BUFFER_SIZE, _bytes, "%s", buffer);
-            *_len = strlen(buffer);
-            pprint(_bytes, _len, _status, buffer, 1);
          }
 
         free(_bytes);
@@ -135,6 +148,9 @@ int main(int argc, char **argv) {
         free(_argv);
         _argc = realloc(_argc, 0);
     } while (clientShouldRun == 1);
+
+    free(instruction);
+    free(data);
 
     close(local_socket);
     close(server);
