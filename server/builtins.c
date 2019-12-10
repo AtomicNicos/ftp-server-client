@@ -76,8 +76,6 @@ void getFile(int localSocket, char *argv0, char init[INSTR_SIZE]) {
     
     fwrite("test", 1, 4, fd);
 
-    sleep(10);
-
     unlockFile(localFilePath);
     // ! WRITE TO FILE AT PATH
     fclose(fd);

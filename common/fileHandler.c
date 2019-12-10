@@ -71,7 +71,8 @@ void getFiles(const char *path, char *files[FILENAME_MAX + 1], int *numberOfFile
 int lockFile(const char *path) {
     char *lockFilePath = malloc(FILENAME_MAX + 1);
     snprintf(lockFilePath, FILENAME_MAX + 1, "%s.lock", path);    
-    FILE *fd = fopen(lockFilePath, "w+");
+    FILE *fd = fopen(lockFilePath, "w");
+    
     fwrite("lock", 1, 4, fd);
     fclose(fd);
 
