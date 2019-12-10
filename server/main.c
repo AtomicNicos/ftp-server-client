@@ -26,7 +26,7 @@ int clientConnected = 1;
 void signalHandler(int signo) {
     if (signo == SIGINT || signo == SIGTERM || signo == SIGQUIT || signo == SIGHUP) {
         clientConnected = 0;
-        usleep(5);
+        usleep(1);
         programShouldRun = 0;
     } else
         printf("WTF\n");
@@ -98,6 +98,9 @@ int main(int argc, char **argv) {
             } else if (size == 0 && strncmp(instruction, CMD_LIST, strlen(CMD_LIST)) == 0) {
                 printf("CLIENT ASK FOR LIST\n");
                 queryList(client, argv[0]);
+            }else if (size == 0 && strncmp(instruction, CMD_UPLOAD, strlen(CMD_UPLOAD)) == 0) {
+                printf("CLIENT WANTS TO UPLOAD\n");
+                uploadFile(client, argv[0], instruction);
             }
 
             usleep(10);

@@ -33,6 +33,8 @@ typedef signed long long sll;
 #define STATUS_EMPTY    "EMPTY"
 #define STATUS_RESINUSE "RIU"
 
+#define SPLIT_PLACES " \t"
+
 #define FAIL_SUCCESFULLY(msg)       { fprintf(stderr, msg); exit(EXIT_FAILURE); }
 #define FAIL_FSUCCESFULLY(msg, ...) { fprintf(stderr, msg, __VA_ARGS__); exit(EXIT_FAILURE); }
 
@@ -42,5 +44,7 @@ void pprint(ull *bytes, int *contentSize, int *status, char *content, int sent);
 
 int sendData(int localSocket, char instruction[INSTR_SIZE], char data[BUFFER_SIZE]);
 int recvData(int localSocket, char instruction[INSTR_SIZE], char data[BUFFER_SIZE]);
+
+char **splitLine(char *line, int *count, char *tokens);
 
 #endif

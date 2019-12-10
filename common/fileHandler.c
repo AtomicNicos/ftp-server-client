@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <dirent.h>
 #include <errno.h>
@@ -10,18 +11,17 @@
 #include "utils.h"
 #include "fileHandler.h"
 
-int isValidPath(char *path) {
+int isValidPath(const char *path) {
     struct stat* statBuffer = malloc(sizeof(struct stat));
     memset(statBuffer, 0, sizeof(struct stat));
     int status = lstat(path, statBuffer);
     __mode_t mode = statBuffer->st_mode;
     
     free(statBuffer);
-
     return (status == 0 && (S_ISDIR(mode) || S_ISLNK(mode) || S_ISREG(mode))) ? 1 : 0;
 }
 
-sll getLength(char *path) {
+sll getLength(const char *path) {
     if (isValidPath(path) == 1) {
         sll length;
         FILE *f = fopen(path, "rb");
@@ -32,10 +32,8 @@ sll getLength(char *path) {
             fseek(f, 0, SEEK_SET);
             
             return length;
-        } else
-            return -1;
-    } else 
-        return -1;
+        } else return -1;
+    } else return -1;
 }
 
 /** Gets all of the subfiles/folders of { @param path }
@@ -65,7 +63,60 @@ void getFiles(const char *path, char *files[FILENAME_MAX + 1], int *numberOfFile
     } else if (errno < 0)
         printf("ERROR %d : %s\n", errno, strerror(errno));
 
-    free(statBuffer);
-
     *numberOfFiles = count; // Keep track of the number of children.
+
+    free(currentDir); free(statBuffer);
+}
+
+
+int lockFile(const char *path, int fd) {
+    struct flock fl;
+    memset(&fl, 0, sizeof(fl));
+
+    fl.l_type = F_WRLCK;
+    fl.l_start = 0;
+    fl.l_len = getLength(path);
+    fl.l_pid = getpid();
+    
+    int lockstatus = fcntl(fd, F_SETLK, &fl);	// Do the thing
+    if (lockstatus == 0) {
+        printf("LOCK SUCCESS\n");
+    } else {
+        printf("LOCK FAILURE\n");
+    }
+
+}
+
+int unlockFile(const char *path, int fd) {
+    struct flock fl;
+    memset(&fl, 0, sizeof(fl));
+
+    fl.l_type = F_UNLCK;
+    fl.l_start = 0;
+    fl.l_len = getLength(path);
+    fl.l_pid = getpid();
+    
+    int lockstatus = fcntl(fd, F_SETLK, &fl);	// Do the thing
+    if (lockstatus == 0) {
+        printf("UNLOCK SUCCESS\n");
+    } else {
+        printf("UNLOCK FAILURE\n");
+    }
+}
+
+int isLocked(const char *path, int fd) {
+    struct flock fl;
+    memset(&fl, 0, sizeof(fl));
+
+    fl.l_type = F_WRLCK;
+    fl.l_start = 0;
+    fl.l_len = getLength(path);
+    fl.l_pid = getpid();
+    
+    int lockstatus = fcntl(fd, F_GETLK, &fl);	// Do the thing
+    if (fl.l_type != F_UNLCK) {
+        printf("LOCKED\n");
+    } else {
+        printf("UNLOCKED\n");
+    }
 }

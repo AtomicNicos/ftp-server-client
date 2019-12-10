@@ -3,10 +3,14 @@
 
 #include "utils.h"
 
-int isValidPath(char *path);
+int isValidPath(const char *path);
 
-sll getLength(char *path);
+sll getLength(const char *path);
 
 void getFiles(const char *path, char *files[FILENAME_MAX + 1], int *numberOfFiles);
+
+int lockFile(const char *path, int fd);
+int unlockFile(const char *path, int fd);
+int isLocked(const char *path, int fd);
 
 #endif

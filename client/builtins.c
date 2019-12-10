@@ -38,7 +38,7 @@ char* list(int localSocket, int *_argc, char **_argv) {
     sendData(localSocket, CMD_LIST, data);
     
     usleep(1);
-    int status = recvData(localSocket, instruction, data);
+    recvData(localSocket, instruction, data);
 
     long fCount = strtol(instruction + 6, NULL, 0);
     printf("%ld Remote Files\n", fCount);
@@ -54,28 +54,27 @@ char* list(int localSocket, int *_argc, char **_argv) {
 }
 
 char* upload(int localSocket, int *_argc, char **_argv) {
-    if (*_argc < 2)
-        (WARN("-upload: insufficient arguments.", "ul <file> [...]"));
-    for (int i = 1; i < *_argc; i++) {
-        char *file = malloc(FILENAME_MAX + 1);
-        snprintf(file, FILENAME_MAX, "%s/client/~/%s", getenv("PWD"), _argv[i]);
-        sll fileLength = getLength(file);
+    if (*_argc != 2 && *_argc != 3)
+        (WARN("-upload: invalid amount of arguments.", "ul <file> [<file new name>]"));
 
-        printf("%lld %d\n", fileLength, fileLength >= 0 ? 1 : 0);
-        if (fileLength >= 0)  {
-            //char *response = malloc(COMMAND_SIZE + 1);
-            sll *bytes = malloc(sizeof(ull));
-            //sendPacket(localSocket, COMMAND_SIZE + 1, bytes, "%s %s 0x%.16x", CMD_BROADCAST, CMD_UPLOAD, fileLength); //TODO
-            printf("FILE LEN %lld\n", fileLength);
-     
+    int renameMode = (*_argc == 3) ? 1 : 0;
 
-            free(bytes);
-            //free(response);
-        }
-        
-        printf("%lld <- %s\n", getLength(file), file);
-        free(file);
-    }
+    char *file = malloc(FILENAME_MAX + 1);
+    snprintf(file, FILENAME_MAX, "%s/client/~/%s", getenv("PWD"), _argv[1]);
+    sll fileLength = getLength(file);
+
+    if (fileLength >= 0)
+        printf("FILE LEN %lld\n", fileLength);
+    else 
+        (WARN("-upload: specified file does not exist.", "ul <file> [<file new name>]"));
+
+    char *instruction = malloc(INSTR_SIZE + 1); char *data = malloc(BUFFER_SIZE + 1);
+
+    memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
+    snprintf(instruction, INSTR_SIZE + 1, "%s 0x%.17llx", CMD_UPLOAD, fileLength);
+    sendData(localSocket, instruction, data);
+
+    free(file);
     return "builtin upload";
 }
 

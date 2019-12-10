@@ -14,8 +14,8 @@ void queryList(int localSocket, char *argv0) {
     int *fileCount = malloc(sizeof(int));
 
     snprintf(execPath, FILENAME_MAX + 1, "%s", argv0 + 1);
-    char *slash = strrchr(execPath, '/');
 
+    char *slash = strrchr(execPath, '/');
     if (slash)
         slash[0] = '\0';
     
@@ -24,6 +24,7 @@ void queryList(int localSocket, char *argv0) {
 
     memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
     snprintf(instruction, INSTR_SIZE + 1, "FILES 0x%.4x", *fileCount);
+
     usleep(1);
     sendData(localSocket, instruction, data);
 
@@ -42,4 +43,9 @@ void queryList(int localSocket, char *argv0) {
     free(execPath); free(dirPath);
     free(fileCount);
     free(instruction); free(data);
+}
+
+
+void uploadFile(int localSocket, char *argv0, char init[INSTR_SIZE]) {
+    printf("%s\n", init);
 }

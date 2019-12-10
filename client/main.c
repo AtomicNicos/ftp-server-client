@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
         print_prompt(env_user, serverAddress, distant_cwd);
         char *line = getLine(); // Get user input.
         int *_argc = malloc(sizeof(int));
-        char **_argv = splitLine(line, _argc);  // Generate an asymmetrical component holder of vacuous contents or some such bs.
+        char **_argv = splitLine(line, _argc, SPLIT_PLACES);  // Generate an asymmetrical component holder of vacuous contents or some such bs.
         
         //printf("ARGC %i\n", *_argc);
 

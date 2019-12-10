@@ -79,3 +79,38 @@ int recvData(int localSocket, char instruction[INSTR_SIZE + 1], char data[BUFFER
     free(buffer); free(CRC); free(contentSize);
     return (strncmp(instruction, STATUS_ERR, strlen(STATUS_ERR)) == 0 || strncmp(instruction, STATUS_EMPTY, strlen(STATUS_EMPTY)) == 0) ? -1 : _contentSize;
 }
+
+/** @brief Tokenizes the user's input
+ * @param str The users input.
+ * @param count The amount of params, useful externally.
+ * @param tokens The tokens to separate on { @def SPLIT_PLACES }
+ * @return The different tokens.
+ */
+char **splitLine(char *str, int *count, char *tokens) {
+	int c = 0, l = strlen(str);
+	for (int i = 0; i < l; i++) // Count the number of spaces to define the size of our mock _argv.
+		if (str[i] == ' ' && str[i + 1] && str[i + 1] != ' ')
+			c += 1;
+			
+	int pos = 0;
+	char **elements = malloc((c + 2) * sizeof(char*));		// Token holder
+	memset(elements, 0, (c + 2) * sizeof(char*));
+	char *element;
+
+	if (!elements) 
+        FAIL_SUCCESFULLY("mAllocation Error");	// Handle errors
+
+	element = strtok(str, SPLIT_PLACES);	// Tokenize on flags
+	while (element != NULL) {	// Iterate on tokens
+		elements[pos] = (char*) malloc(FILENAME_MAX);
+		memset(elements[pos], 0, FILENAME_MAX);
+		strncpy(elements[pos], element, FILENAME_MAX);
+		pos++;
+		element = strtok(NULL, SPLIT_PLACES);
+	}
+
+	elements[pos] = NULL;
+
+	*count = pos;	// External use
+	return elements;
+}

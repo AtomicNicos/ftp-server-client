@@ -5,6 +5,4 @@
 
 char* getLine();
 
-char **splitLine(char *line, int *count);
-
 #endif
