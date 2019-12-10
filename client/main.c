@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
         int *_argc = malloc(sizeof(int));
         char **_argv = splitLine(line, _argc);  // Generate an asymmetrical component holder of vacuous contents or some such bs.
         
-        printf("ARGC %i\n", *_argc);
+        //printf("ARGC %i\n", *_argc);
 
         if (*_argc > 0 && clientShouldRun == 1) {
             char * builtinCommand = executeBuiltin(server, _argc, _argv);
@@ -104,8 +104,7 @@ int main(int argc, char **argv) {
                 }
             } else if (strlen(builtinCommand) == 2 && strncmp(builtinCommand, "NO", 2) == 0) {
                 printf("ERROR %s\n", builtinCommand);
-            } else 
-                printf("%s\n", builtinCommand);
+            }
         }
             
         // TODO Perhaps check server liveliness

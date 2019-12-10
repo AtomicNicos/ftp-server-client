@@ -29,7 +29,8 @@ typedef signed long long sll;
 
 #define STATUS_OK       "OK"
 #define STATUS_DONE     "DONE"
-#define STATUS_ERR      "RESEND"
+#define STATUS_ERR      "ERROR"
+#define STATUS_EMPTY    "EMPTY"
 #define STATUS_RESINUSE "RIU"
 
 #define FAIL_SUCCESFULLY(msg)       { fprintf(stderr, msg); exit(EXIT_FAILURE); }

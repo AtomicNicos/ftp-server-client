@@ -10,6 +10,7 @@
 #include <arpa/inet.h>
 #include <signal.h>
 
+#include "builtins.h"
 #include "../common/utils.h"
 #include "../common/fileHandler.h"
 #include "../common/crc.h"
@@ -71,7 +72,7 @@ int main(int argc, char **argv) {
         connectionCount += 1;
 
         if (client < 0)
-            printColorized("Client connection refused", 31, 40, 0, 1);
+            printColorized("Client connection broken", 31, 40, 0, 1);
         else {
             char *client_origin = malloc(INET_ADDRSTRLEN);
             inet_ntop(AF_INET, &(client_addr.sin_addr), client_origin, client_addr_length);
@@ -89,7 +90,6 @@ int main(int argc, char **argv) {
             char *instruction = malloc(INSTR_SIZE + 1);
             char *data = malloc(BUFFER_SIZE + 1);
             int size = recvData(client, instruction, data);
-            printf("%ld INSTR |%s|\n", strlen(instruction), instruction);
             printf("%ld TEXT |%s|\n", strlen(data), data);
 
             if (size == 0 && strncmp(instruction, CMD_EXIT, strlen(CMD_EXIT)) == 0) {
@@ -97,35 +97,10 @@ int main(int argc, char **argv) {
                 clientConnected = 0;
             } else if (size == 0 && strncmp(instruction, CMD_LIST, strlen(CMD_LIST)) == 0) {
                 printf("CLIENT ASK FOR LIST\n");
-                char *dirPath = malloc(FILENAME_MAX + 1);
-                char *execPath = malloc(FILENAME_MAX + 1);
-                char *files[FILENAME_MAX];
-                int *fileCount = malloc(sizeof(int));
-                *fileCount = 0;
-
-                snprintf(execPath, FILENAME_MAX + 1, "%s", argv[0] + 1);
-                char *slash = strrchr(execPath, '/');
-                printf("SLASH %s %d\n", slash, (slash) ? 1 : 0);
-                if (slash)
-                    slash[0] = '\0';
-                
-                snprintf(dirPath, FILENAME_MAX + 1, "%s%s/~", getenv("PWD"), execPath);
-                getFiles(dirPath, files, fileCount);
-                for (int i = 0; i < *fileCount; i++) {
-                    // TODO SEND PATH DATA
-                    printf("PATH | %s |\n", files[i]);
-                }
-
-                free(execPath);
-                free(dirPath);
-                for (int i = 0; i < *fileCount; i++) {
-                    files[i] = realloc(files[i], 0);
-                }
-                free(fileCount);
-                
+                queryList(client, argv[0]);
             }
 
-            usleep(2000);
+            usleep(10);
             free(instruction);
             free(data);
         } while (clientConnected == 1);

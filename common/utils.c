@@ -66,17 +66,16 @@ int recvData(int localSocket, char instruction[INSTR_SIZE + 1], char data[BUFFER
     int calculatedCRC = computeCRC(buffer + CRC_SIZE, INSTR_SIZE + PACKET_SIZE_INDIC + BUFFER_SIZE);
 
     printf("ARR %.4x <=> %.4x CALC\n", arrivedCRC, calculatedCRC);
-    if (arrivedCRC == 0) {
-        snprintf(instruction, INSTR_SIZE, "%s", "EMPTY");
-        return -1;
-    } else if (arrivedCRC != calculatedCRC) {
-        snprintf(instruction, INSTR_SIZE, "%s", "ERROR");
-        return 0;
-    }
+    if (arrivedCRC == 0)
+        snprintf(instruction, INSTR_SIZE, "%s", STATUS_EMPTY);
+    else if (arrivedCRC != calculatedCRC)
+        snprintf(instruction, INSTR_SIZE, "%s", STATUS_ERR);
     
     snprintf(instruction, INSTR_SIZE + 1, "%s", buffer + CRC_SIZE);
     snprintf(data, _contentSize + 1, "%s", buffer + DATA_OFFSET);
 
+    printf("%ld INSTR |%s|\n", strlen(instruction), instruction);
+
     free(buffer); free(CRC); free(contentSize);
-    return _contentSize;
+    return (strncmp(instruction, STATUS_ERR, strlen(STATUS_ERR)) == 0 || strncmp(instruction, STATUS_EMPTY, strlen(STATUS_EMPTY)) == 0) ? -1 : _contentSize;
 }

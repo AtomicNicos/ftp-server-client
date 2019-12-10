@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "../common/utils.h"
 #include "../common/fileHandler.h"
@@ -34,10 +35,21 @@ char* list(int localSocket, int *_argc, char **_argv) {
 
     char *instruction = malloc(INSTR_SIZE + 1); char *data = malloc(BUFFER_SIZE + 1);
     memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
-    snprintf(instruction, INSTR_SIZE + 1, "%s", CMD_LIST);
-
-    sendData(localSocket, instruction, data);
+    sendData(localSocket, CMD_LIST, data);
     
+    usleep(1);
+    int status = recvData(localSocket, instruction, data);
+
+    long fCount = strtol(instruction + 6, NULL, 0);
+    printf("%ld Remote Files\n", fCount);
+    for (long i = 0; i < fCount; i++) {
+        memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
+        usleep(1);
+        recvData(localSocket, instruction, data);
+        printf("  %ld => %s\n", i + 1, data);
+    }
+    
+    free(instruction); free(data);
     return "builtin list";
 }
 
@@ -55,7 +67,7 @@ char* upload(int localSocket, int *_argc, char **_argv) {
             sll *bytes = malloc(sizeof(ull));
             //sendPacket(localSocket, COMMAND_SIZE + 1, bytes, "%s %s 0x%.16x", CMD_BROADCAST, CMD_UPLOAD, fileLength); //TODO
             printf("FILE LEN %lld\n", fileLength);
-            
+     
 
             free(bytes);
             //free(response);
