@@ -21,19 +21,18 @@ int isValidPath(const char *path) {
     return (status == 0 && (S_ISDIR(mode) || S_ISLNK(mode) || S_ISREG(mode))) ? 1 : 0;
 }
 
-sll getLength(const char *path) {
+ull getLength(const char *path) {
     if (isValidPath(path) == 1) {
-        sll length;
+        ull length;
         FILE *f = fopen(path, "rb");
 
         if (f) {
             fseek(f, 0, SEEK_END);
-            length = ftell(f);
+            length = (ull) ftell(f);
             fseek(f, 0, SEEK_SET);
-            
             return length;
-        } else return -1;
-    } else return -1;
+        } else return 0;
+    } else return 0;
 }
 
 /** Gets all of the subfiles/folders of { @param path }
@@ -84,7 +83,6 @@ int lockFile(const char *path, int fd) {
     } else {
         printf("LOCK FAILURE\n");
     }
-
 }
 
 int unlockFile(const char *path, int fd) {

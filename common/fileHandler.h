@@ -5,7 +5,7 @@
 
 int isValidPath(const char *path);
 
-sll getLength(const char *path);
+ull getLength(const char *path);
 
 void getFiles(const char *path, char *files[FILENAME_MAX + 1], int *numberOfFiles);
 

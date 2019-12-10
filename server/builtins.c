@@ -46,6 +46,23 @@ void queryList(int localSocket, char *argv0) {
 }
 
 
-void uploadFile(int localSocket, char *argv0, char init[INSTR_SIZE]) {
+void getFile(int localSocket, char *argv0, char init[INSTR_SIZE]) {
     printf("%s\n", init);
+    /* 
+    <= fname [NAME][new NAME]
+    check if exists.
+    if exists:
+        => [OVERWRITE][]
+        <= [CONFIRM|DENY][]
+        if CONFIRM:
+            => [OK][]
+        else:
+            => [CANCEL][]
+
+    => [OK][]
+    while (size):
+        <= [PACKET][BYTES]
+        write BYTES
+        
+    */
 }

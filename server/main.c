@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
     if (listen(sock, BACKLOG) < 0)
         FAIL_SUCCESFULLY("Deaf server\n")
     else
-        printf("Listen for connections on a socket... OK\nServer listens for connections on a port %d.\n", PORT);
+        printf("Listen for connections on a socket... OK\nServer listens for connections on a port 127.0.0.1:%d.\n", PORT);
 
     int client;
 
@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
                 queryList(client, argv[0]);
             }else if (size == 0 && strncmp(instruction, CMD_UPLOAD, strlen(CMD_UPLOAD)) == 0) {
                 printf("CLIENT WANTS TO UPLOAD\n");
-                uploadFile(client, argv[0], instruction);
+                getFile(client, argv[0], instruction);
             }
 
             usleep(10);
