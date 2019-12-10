@@ -125,7 +125,7 @@ char* getFilesFolder(char *argv0) {
     if (slash)
         slash[0] = '\0';
     
-    snprintf(dirPath, FILENAME_MAX + 1, "%s%s/~", getenv("PWD"), execPath);
+    snprintf(dirPath, FILENAME_MAX + 1, "%s%s/files", getenv("PWD"), execPath);
     free(execPath);
     return dirPath;
 }

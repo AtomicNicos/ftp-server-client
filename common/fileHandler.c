@@ -73,7 +73,7 @@ int lockFile(const char *path) {
     snprintf(lockFilePath, FILENAME_MAX + 1, "%s.lock", path);    
     FILE *fd = fopen(lockFilePath, "w");
     
-    fwrite("lock", 1, 4, fd);
+    fprintf(fd, "%s", "lock");
     fclose(fd);
 
     printf("ADDING LOCK FILE [%s]\n", lockFilePath);
