@@ -7,6 +7,7 @@
 #include "../common/utils.h"
 #include "../common/fileHandler.h"
 #include "builtins.h"
+#include "lineReader.h"
 
 /** @brief Prints a nice prompt.
  * @param user The user name
@@ -53,10 +54,10 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
     int renameMode = (*_argc == 3) ? 1 : 0;
 
     char *file = malloc(FILENAME_MAX + 1);
-    snprintf(file, FILENAME_MAX, "%s/client/~/%s", getenv("PWD"), _argv[1]);
+    snprintf(file, FILENAME_MAX, "%s/%s", getFilesFolder(argv0), _argv[1]);
     sll fileLength = getLength(file);
 
-    if (fileLength >= 0)
+    if (fileLength > 0)
         printf("FILE LEN %lld\n", fileLength);
     else 
         (WARN("-upload: specified file does not exist.", "ul <file> [<file new name>]"));
@@ -66,14 +67,49 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
 
     snprintf(instruction, INSTR_SIZE + 1, "%s 0x%.17llx", CMD_UPLOAD, fileLength);
     sendData(localSocket, instruction, data);
-
+    
     memset(instruction, 0, INSTR_SIZE + 1);
     snprintf(instruction, INSTR_SIZE + 1, "%s", CMD_NAME);
     snprintf(data, BUFFER_SIZE + 1, "%s", (renameMode == 1) ? _argv[2] : _argv[1]);
-
+    
+    usleep(1);
     sendData(localSocket, instruction, data);
     
-    free(file);
+    memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
+    usleep(1);
+    recvData(localSocket, instruction, data);
+
+    if (strncmp(instruction, CMD_OVERRIDE, strlen(CMD_OVERRIDE)) == 0) {
+        printf("`%s` already exists on the server. OVERWRITE ? [Y/n] > ", (renameMode == 1) ? _argv[2] : _argv[1]);
+        char *result;
+        int change = -1;
+        while (change == -1) {
+            result = getLine();
+            if (strlen(result) == 1 && (strncmp(result, "Y", 1) == 0 || strncmp(result, "y", 1) == 0))
+                change = 1;
+            else if (strlen(result) == 1 && (strncmp(result, "N", 1) == 0 || strncmp(result, "n", 1) == 0))
+                change = 0;
+            else
+                printf("Invalid answer. OVERWRITE ? [Y/n] > ");
+            free(result);
+        }
+        
+        usleep(1);
+        memset(instruction, 0, INSTR_SIZE + 1);
+        if (change == 0) {
+            printf("Client chose to ABORT.\n");
+            snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_ERR);
+            sendData(localSocket, instruction, data);
+            free(file);
+            return "NO OVERWRITE EXIT";
+        } else {
+            snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_OK);
+            sendData(localSocket, instruction, data);
+        }
+    }
+    memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
+    printf("HERE\n");
+    free(file); free(instruction); free(data);
     return "builtin upload";
 }
 

@@ -24,15 +24,14 @@ typedef signed long long sll;
 #define CMD_BROADCAST   "BRDCST"
 #define CMD_NAME        "NAME"
 #define CMD_LIST        "LIST"
-
-#define CMD_PING        "PING"
-#define CMD_PONG        "PONG"
+#define CMD_OVERRIDE    "OVERWRITE"
 
 #define STATUS_OK       "OK"
 #define STATUS_DONE     "DONE"
 #define STATUS_ERR      "ERROR"
 #define STATUS_EMPTY    "EMPTY"
 #define STATUS_RESINUSE "RIU"
+#define STATUS_DENY     "DENY"
 
 #define SPLIT_PLACES " \t"
 
@@ -48,4 +47,5 @@ int recvData(int localSocket, char instruction[INSTR_SIZE], char data[BUFFER_SIZ
 
 char **splitLine(char *line, int *count, char *tokens);
 
+char *getFilesFolder(char *argv0);
 #endif

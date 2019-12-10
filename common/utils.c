@@ -114,3 +114,18 @@ char **splitLine(char *str, int *count, char *tokens) {
 	*count = pos;	// External use
 	return elements;
 }
+
+char *getFilesFolder(char *argv0) {
+    char *dirPath = malloc(FILENAME_MAX + 1); 
+    char *execPath = malloc(FILENAME_MAX + 1);
+
+    snprintf(execPath, FILENAME_MAX + 1, "%s", argv0 + 1);
+
+    char *slash = strrchr(execPath, '/');
+    if (slash)
+        slash[0] = '\0';
+    
+    snprintf(dirPath, FILENAME_MAX + 1, "%s%s/~", getenv("PWD"), execPath);
+    free(execPath);
+    return dirPath;
+}

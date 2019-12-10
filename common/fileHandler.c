@@ -68,53 +68,36 @@ void getFiles(const char *path, char *files[FILENAME_MAX + 1], int *numberOfFile
 }
 
 
-int lockFile(const char *path, int fd) {
-    struct flock fl;
-    memset(&fl, 0, sizeof(fl));
+int lockFile(const char *path) {
+    char *lockFilePath = malloc(FILENAME_MAX + 1);
+    snprintf(lockFilePath, FILENAME_MAX + 1, "%s.lock", path);    
+    FILE *fd = fopen(lockFilePath, "w+");
+    fwrite("lock", 1, 4, fd);
+    fclose(fd);
 
-    fl.l_type = F_WRLCK;
-    fl.l_start = 0;
-    fl.l_len = getLength(path);
-    fl.l_pid = getpid();
-    
-    int lockstatus = fcntl(fd, F_SETLK, &fl);	// Do the thing
-    if (lockstatus == 0) {
-        printf("LOCK SUCCESS\n");
-    } else {
-        printf("LOCK FAILURE\n");
-    }
+    printf("ADDING LOCK FILE [%s]\n", lockFilePath);
+    free(lockFilePath);
+    return 1;
 }
 
-int unlockFile(const char *path, int fd) {
-    struct flock fl;
-    memset(&fl, 0, sizeof(fl));
-
-    fl.l_type = F_UNLCK;
-    fl.l_start = 0;
-    fl.l_len = getLength(path);
-    fl.l_pid = getpid();
-    
-    int lockstatus = fcntl(fd, F_SETLK, &fl);	// Do the thing
-    if (lockstatus == 0) {
-        printf("UNLOCK SUCCESS\n");
-    } else {
-        printf("UNLOCK FAILURE\n");
+int unlockFile(const char *path) {
+    int status = -1;
+    if (isLocked(path) == 1) {
+        char *lockFilePath = malloc(FILENAME_MAX + 1);
+        snprintf(lockFilePath, FILENAME_MAX + 1, "%s.lock", path); 
+        status = remove(lockFilePath);
+        printf("REMOVING LOCK FILE [%s]\n", lockFilePath);
+        free(lockFilePath);
     }
+
+    return (status == 0) ? 1 : 0;
 }
 
-int isLocked(const char *path, int fd) {
-    struct flock fl;
-    memset(&fl, 0, sizeof(fl));
+int isLocked(const char *path) {
+    char *lockFilePath = malloc(FILENAME_MAX + 1);
+    snprintf(lockFilePath, FILENAME_MAX + 1, "%s.lock", path);    
+    int len = getLength(lockFilePath);
 
-    fl.l_type = F_WRLCK;
-    fl.l_start = 0;
-    fl.l_len = getLength(path);
-    fl.l_pid = getpid();
-    
-    int lockstatus = fcntl(fd, F_GETLK, &fl);	// Do the thing
-    if (fl.l_type != F_UNLCK) {
-        printf("LOCKED\n");
-    } else {
-        printf("UNLOCKED\n");
-    }
+    free(lockFilePath);
+    return (len > 0) ? 1 : 0;
 }
