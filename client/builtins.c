@@ -31,6 +31,13 @@ return "NO";\
 char* list(int localSocket, int *_argc, char **_argv) {
     if (*_argc != 1)
         (WARN("-list: too many arguments.", "list"));
+
+    char *instruction = malloc(INSTR_SIZE + 1); char *data = malloc(BUFFER_SIZE + 1);
+    memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
+    snprintf(instruction, INSTR_SIZE + 1, "%s", CMD_LIST);
+
+    sendData(localSocket, instruction, data);
+    
     return "builtin list";
 }
 

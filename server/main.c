@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -7,11 +8,28 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <signal.h>
 
 #include "../common/utils.h"
+#include "../common/fileHandler.h"
 #include "../common/crc.h"
 
 //\033[%i;%i;%im%s\033[0m
+
+int programShouldRun = 1;
+int clientConnected = 1;
+
+/** @brief Handles signals.... 
+ * @param signo The signal number.
+ */
+void signalHandler(int signo) {
+    if (signo == SIGINT || signo == SIGTERM || signo == SIGQUIT || signo == SIGHUP) {
+        clientConnected = 0;
+        usleep(5);
+        programShouldRun = 0;
+    } else
+        printf("WTF\n");
+}
 
 int main(int argc, char **argv) {
     // SETUP
@@ -39,14 +57,15 @@ int main(int argc, char **argv) {
     else
         printf("Listen for connections on a socket... OK\nServer listens for connections on a port %d.\n", PORT);
 
-    int programShouldRun = 1;   // Non descript.
     int client;
-    ull *_bytes = malloc(sizeof(ull));
-    int *_contentSize = malloc(sizeof(int)), *_status = malloc(sizeof(int));
+
+    struct sigaction action;    // Define signal handlers and sh*zz.
+    memset(&action, 0, sizeof(action));
+    action.sa_handler = signalHandler;
+    sigaction(SIGINT, &action, NULL);
 
     // END SETUP
     
-
     do {
         client = accept(sock, (struct sockaddr *) &client_addr, &client_addr_length);
         connectionCount += 1;
@@ -66,7 +85,6 @@ int main(int argc, char **argv) {
         }
 
         char *buffer = malloc(FRAME_SIZE + BUFFER_SIZE);
-        int clientConnected = 1;
         do {
             char *instruction = malloc(INSTR_SIZE + 1);
             char *data = malloc(BUFFER_SIZE + 1);
@@ -74,15 +92,37 @@ int main(int argc, char **argv) {
             printf("%ld INSTR |%s|\n", strlen(instruction), instruction);
             printf("%ld TEXT |%s|\n", strlen(data), data);
 
-            if (size == 0 && strncmp(instruction, CMD_PING, strlen(CMD_PING)) == 0) {
-                printf("CLIENT PINGED\n");
-                memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
-                snprintf(instruction, INSTR_SIZE + 1, "%s", CMD_PONG);
-                snprintf(data, BUFFER_SIZE + 1, "%s", "");
-                sendData(client, instruction, data);
-            } else if (size == 0 && strncmp(instruction, CMD_EXIT, strlen(CMD_EXIT)) == 0) {
+            if (size == 0 && strncmp(instruction, CMD_EXIT, strlen(CMD_EXIT)) == 0) {
                 printf("CLIENT EXITED\n");
                 clientConnected = 0;
+            } else if (size == 0 && strncmp(instruction, CMD_LIST, strlen(CMD_LIST)) == 0) {
+                printf("CLIENT ASK FOR LIST\n");
+                char *dirPath = malloc(FILENAME_MAX + 1);
+                char *execPath = malloc(FILENAME_MAX + 1);
+                char *files[FILENAME_MAX];
+                int *fileCount = malloc(sizeof(int));
+                *fileCount = 0;
+
+                snprintf(execPath, FILENAME_MAX + 1, "%s", argv[0] + 1);
+                char *slash = strrchr(execPath, '/');
+                printf("SLASH %s %d\n", slash, (slash) ? 1 : 0);
+                if (slash)
+                    slash[0] = '\0';
+                
+                snprintf(dirPath, FILENAME_MAX + 1, "%s%s/~", getenv("PWD"), execPath);
+                getFiles(dirPath, files, fileCount);
+                for (int i = 0; i < *fileCount; i++) {
+                    // TODO SEND PATH DATA
+                    printf("PATH | %s |\n", files[i]);
+                }
+
+                free(execPath);
+                free(dirPath);
+                for (int i = 0; i < *fileCount; i++) {
+                    files[i] = realloc(files[i], 0);
+                }
+                free(fileCount);
+                
             }
 
             usleep(2000);
@@ -95,8 +135,6 @@ int main(int argc, char **argv) {
 
     sleep(1);
     printf("STOP\n");
-    free(_bytes);
-    free(_status);
     close(sock);
     exit(EXIT_SUCCESS);
 }
