@@ -115,8 +115,8 @@ char **splitLine(char *str, int *count, char *tokens) {
 	return elements;
 }
 
-char *getFilesFolder(char *argv0) {
-    char *dirPath = malloc(FILENAME_MAX + 1); 
+char* getFilesFolder(char *argv0) {
+    char *dirPath = malloc(FILENAME_MAX + 1);
     char *execPath = malloc(FILENAME_MAX + 1);
 
     snprintf(execPath, FILENAME_MAX + 1, "%s", argv0 + 1);
