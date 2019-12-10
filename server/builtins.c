@@ -48,6 +48,14 @@ void queryList(int localSocket, char *argv0) {
 
 void getFile(int localSocket, char *argv0, char init[INSTR_SIZE]) {
     printf("%s\n", init);
+    ull size = strtoull(init + 3, NULL, 0);
+    ull currentSize = (ull) 0;
+    //printf("SIZE %.17llx = %llu\n", size, size);
+
+    char *instruction = malloc(INSTR_SIZE + 1); char *data = malloc(BUFFER_SIZE + 1);
+    int len = recvData(localSocket, instruction, data);
+    printf("NAME => [%s]\n", data);
+
     /* 
     <= fname [NAME][new NAME]
     check if exists.

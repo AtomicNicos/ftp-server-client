@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
         //printf("ARGC %i\n", *_argc);
 
         if (*_argc > 0 && clientShouldRun == 1) {
-            char * builtinCommand = executeBuiltin(server, _argc, _argv);
+            char * builtinCommand = executeBuiltin(server, _argc, argv[0], _argv);
             if (builtinCommand == NULL) {        // Not a builtin
                 if (*_argc == 1 && strncmp("exit", _argv[0], 4) == 0) {
                     if (strlen(_argv[0]) == 4) {

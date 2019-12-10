@@ -39,7 +39,6 @@ int main(int argc, char **argv) {
     struct sockaddr_in serv_addr, client_addr;
     unsigned int client_addr_length = sizeof(client_addr);
     int sock, connectionCount = 0;
-    const char *pwd = getenv("PWD");
 
     printf("START\n");
 
@@ -72,7 +71,7 @@ int main(int argc, char **argv) {
         connectionCount += 1;
 
         if (client < 0)
-            printColorized("Client connection broken", 31, 40, 0, 1);
+            printColorized("Client connection failed or broken", 31, 40, 0, 1);
         else {
             char *client_origin = malloc(INET_ADDRSTRLEN);
             inet_ntop(AF_INET, &(client_addr.sin_addr), client_origin, client_addr_length);
@@ -103,7 +102,7 @@ int main(int argc, char **argv) {
                 getFile(client, argv[0], instruction);
             }
 
-            usleep(10);
+            usleep(2);
             free(instruction);
             free(data);
         } while (clientConnected == 1);

@@ -22,6 +22,7 @@ typedef signed long long sll;
 #define CMD_DOWNLOAD    "DL"
 #define CMD_MKDIR       "MKDIR"
 #define CMD_BROADCAST   "BRDCST"
+#define CMD_NAME        "NAME"
 #define CMD_LIST        "LIST"
 
 #define CMD_PING        "PING"

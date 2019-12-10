@@ -23,7 +23,7 @@ void pprint(ull *bytes, int *contentSize, int *status, char *content, int sent) 
     printf("%s %lld BYTES, CONTENT OF SIZE %i     STATUS : %i\n==%s==\n\n", (sent == 1) ? "SENT" : "RECVD", *bytes, *contentSize, *status, content);
 }
 
-int sendData(int localSocket, char instruction[INSTR_SIZE], char data[BUFFER_SIZE]) {
+int sendData(int localSocket, char instruction[INSTR_SIZE + 1], char data[BUFFER_SIZE + 1]) {
     char *amendedBuffer = malloc(PACKET_SIZE_INDIC + INSTR_SIZE + BUFFER_SIZE + 1);
     memset(amendedBuffer, 0, PACKET_SIZE_INDIC + INSTR_SIZE + BUFFER_SIZE + 1);
     
