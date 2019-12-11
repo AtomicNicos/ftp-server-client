@@ -133,8 +133,13 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
         } else {
             snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_OK);
             sendData(localSocket, instruction, data);
+            memset(instruction, 0, INSTR_SIZE + 1);
+            snprintf(instruction, INSTR_SIZE + 1, "%s", CMD_BROADCAST);
+            int n_read = 0;
+            while (n_read = fread(data, 1, BUFFER_SIZE, fd), n_read > 0) {  // While bytes can be read from the src file.
+                printf("READ %d => %s\n", n_read, data);
 
-            while (n_read = read(fd_src, buffer, sizeof buffer), n_read > 0) {  // While bytes can be read from the src file.
+                memset(data, 0, BUFFER_SIZE + 1); 
             }
         }
     }

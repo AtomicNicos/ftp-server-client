@@ -89,7 +89,8 @@ void getFile(int localSocket, char *argv0, char init[INSTR_SIZE]) {
 
             if (strncmp(instruction, STATUS_ERR, strlen(STATUS_ERR)) == 0) {
                 printf("CLIENT COULD NOT OPEN FILE, ABORT\n");
-            } else {
+            } else { // OK.
+                memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
                 printf("RECEIVING %lld bytes => %lld packets of data\n", size, (size / BUFFER_SIZE) + 1);
                 fprintf(fd, "%s", "lock");
                 sleep(10);
