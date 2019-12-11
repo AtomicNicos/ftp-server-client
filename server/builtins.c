@@ -44,6 +44,7 @@ void getFile(int localSocket, char *argv0, char init[INSTR_SIZE]) {
     printf("%s\n", init);
     ull size = strtoull(init + 3, NULL, 0);
     ull currentSize = (ull) 0;
+    ull fileChunks = size / 4098L + 1L;
 
     char *instruction = malloc(INSTR_SIZE + 1); char *data = malloc(BUFFER_SIZE + 1);
     int len = recvData(localSocket, instruction, data);
@@ -70,32 +71,43 @@ void getFile(int localSocket, char *argv0, char init[INSTR_SIZE]) {
         }
     }
 
-    printf("%s \n", localFilePath);
-    lockFile(localFilePath);
-    FILE *fd = fopen(localFilePath, "wb+");
-    if (fd == NULL)
-        perror("FOPEN");
+    // TODO ? Backup system ?
+    if (isLocked(localFilePath) == 0) {
+        lockFile(localFilePath);
+        FILE *fd = fopen(localFilePath, "wb+");
 
+        if (fd == NULL) {
+            perror("FOPEN");
+            snprintf(instruction, INSTR_SIZE + 1, STATUS_ERR);
+            sendData(localSocket, instruction, data);
+        } else {
+            snprintf(instruction, INSTR_SIZE + 1, STATUS_OK);
+            sendData(localSocket, instruction, data);
+
+            memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
+            recvData(localSocket, instruction, data);
+
+            if (strncmp(instruction, STATUS_ERR, strlen(STATUS_ERR)) == 0) {
+                printf("CLIENT COULD NOT OPEN FILE, ABORT\n");
+            } else {
+                printf("RECEIVING %lld bytes => %lld packets of data\n", size, (size / BUFFER_SIZE) + 1);
+                fprintf(fd, "%s", "lock");
+                sleep(10);
+            }
+        }
+        unlockFile(localFilePath);
+        // ! WRITE TO FILE AT PATH
+        fclose(fd);
+    } else {
+        snprintf(instruction, INSTR_SIZE + 1, STATUS_RESINUSE);
+        sendData(localSocket, instruction, data);
+    }
+    isLocked(localFilePath);
     
-    fprintf(fd, "%s", "lock");
-
-    unlockFile(localFilePath);
-    // ! WRITE TO FILE AT PATH
-    fclose(fd);
     free(localFilePath);
 
     /* 
-    <= fname [NAME][new NAME] // !
-    check if exists.
-    if exists:  // !
-        => [OVERWRITE][]
-        <= [CONFIRM|DENY][]
-        if CONFIRM:
-            => [OK][]
-        else:
-            => [CANCEL][]   // !
 
-    => [OK][]
     while (size):
         <= [PACKET][BYTES]
         write BYTES

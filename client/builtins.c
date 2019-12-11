@@ -1,4 +1,5 @@
 #define _GNU_SOURCE
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -23,6 +24,9 @@ void print_prompt(char *user, char *host, char *cwd) {
     printf("$ ");
 }
 
+/** @brief Queries a list of files from the server.
+ * @note Max 0xFFFF files.
+ * @param all See @link { executeBuiltin } */
 char* list(int localSocket, int *_argc, char *argv0, char **_argv) {
     if (*_argc != 1)
         (WARN("-list: too many arguments.", "list"));
@@ -53,9 +57,10 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
 
     int renameMode = (*_argc == 3) ? 1 : 0;
 
-    char *file = malloc(FILENAME_MAX + 1);
-    snprintf(file, FILENAME_MAX, "%s/%s", getFilesFolder(argv0), _argv[1]);
-    sll fileLength = getLength(file);
+    char *localFilePath = malloc(FILENAME_MAX + 1);
+    snprintf(localFilePath, FILENAME_MAX, "%s/%s", getFilesFolder(argv0), _argv[1]);
+    ull fileLength = getLength(localFilePath);
+    ull fileChunks = fileLength / 4098L + 1L;
 
     if (fileLength > 0)
         printf("FILE LEN %lld\n", fileLength);
@@ -92,7 +97,7 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
             else
                 printf("Invalid answer. OVERWRITE ? [Y/n] > ");
             free(result);
-        }
+        } 
         
         usleep(1);
         memset(instruction, 0, INSTR_SIZE + 1);
@@ -100,16 +105,44 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
             printf("Client chose to ABORT.\n");
             snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_ERR);
             sendData(localSocket, instruction, data);
-            free(file);
+            free(localFilePath);
             return "NO OVERWRITE EXIT";
         } else {
             snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_OK);
             sendData(localSocket, instruction, data);
         }
+        memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
+        usleep(1);
+        recvData(localSocket, instruction, data);
+    } else {
+        printf("NO OVERWRITE\n");
     }
+
+    if (strncmp(instruction, STATUS_RESINUSE, strlen(STATUS_RESINUSE)) == 0) { // Server notifies that the file is locked.
+        printf("The resource is currently unavailable (java.io.ConcurrentModificationException)\n");
+    } else if (strncmp(instruction, STATUS_ERR, strlen(STATUS_ERR)) == 0) { // Server notifies that the file is locked.
+        printf("Could not create the file server side.\n");
+    } else if (strncmp(instruction, STATUS_OK, strlen(STATUS_OK)) == 0) {
+        printf("UPLOAD %lld bytes start\n", fileLength);
+        FILE *fd = fopen(localFilePath, "rb");
+        
+        if (fd == NULL) {
+            perror("FOPEN");
+            snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_ERR);
+            sendData(localSocket, instruction, data);
+        } else {
+            snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_OK);
+            sendData(localSocket, instruction, data);
+
+            while (n_read = read(fd_src, buffer, sizeof buffer), n_read > 0) {  // While bytes can be read from the src file.
+            }
+        }
+    }
+    
     memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
     printf("HERE\n");
-    free(file); free(instruction); free(data);
+    free(localFilePath); free(instruction); free(data);
+    
     return "builtin upload";
 }
 

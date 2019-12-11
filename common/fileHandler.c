@@ -42,6 +42,7 @@ ull getLength(const char *path) {
  */
 void getFiles(const char *path, char *files[FILENAME_MAX + 1], int *numberOfFiles) {
     int count = 0;  // Count the children (sounds worse than it is).
+    int len = 0;
     struct dirent *currentDir;
     struct stat *statBuffer = malloc(sizeof(struct stat));
 
@@ -50,7 +51,7 @@ void getFiles(const char *path, char *files[FILENAME_MAX + 1], int *numberOfFile
         if (access(path, F_OK) != -1) { // If the program can access the object at the end of the path.
             if (folder) // Check innulability (yes I just invented a word)
                 while ((currentDir = readdir(folder))) {    // If children can be read.
-                    if (strcmp(currentDir->d_name, ".") && strcmp(currentDir->d_name, "..")) { // And those children don't loop back to self or parent.s
+                    if (strcmp(currentDir->d_name, ".") && strcmp(currentDir->d_name, "..") && (len = strlen(currentDir->d_name)) > 4 && strcmp(currentDir->d_name + len - 5, ".lock")) { // And those children don't loop back to self or parent.s
                         files[count] = (char*) malloc(FILENAME_MAX + 1); // Add it to the children's addresses (getting weird looks from the people at the FBI)
                         snprintf(files[count], FILENAME_MAX + 1, "%s", currentDir->d_name);  // Is a basename.
                         count++;
@@ -99,6 +100,9 @@ int isLocked(const char *path) {
     snprintf(lockFilePath, FILENAME_MAX + 1, "%s.lock", path);    
     int len = getLength(lockFilePath);
 
+
+    printf("VERIFYING LOCK FILE STATUS [%s] => %s\n", lockFilePath, (len > 0) ? "ACTIVE" : "INACTIVE");
+    
     free(lockFilePath);
     return (len > 0) ? 1 : 0;
 }
