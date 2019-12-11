@@ -40,15 +40,14 @@ void queryList(int localSocket, char *argv0) {
 }
 
 
-void getFile(int localSocket, char *argv0, char init[INSTR_SIZE]) {
+void getFile(int localSocket, char *argv0, unsigned char init[INSTR_SIZE]) {
     printf("%s\n", init);
     ull size = strtoull(init + 3, NULL, 0);
     ull currentSize = (ull) 0;
     ull fileChunks = size / 4098L + 1L;
 
-    char *instruction = malloc(INSTR_SIZE + 1); char *data = malloc(BUFFER_SIZE + 1);
+    unsigned char *instruction = malloc(INSTR_SIZE + 1); unsigned char *data = malloc(BUFFER_SIZE + 1);
     int len = recvData(localSocket, instruction, data);
-    printf("NAME => [%s]\n", data);
 
     char *localFilePath = malloc(FILENAME_MAX + 1);
     snprintf(localFilePath, FILENAME_MAX + 1, "%s/%s", getFilesFolder(argv0), data);
@@ -74,7 +73,7 @@ void getFile(int localSocket, char *argv0, char init[INSTR_SIZE]) {
     // TODO ? Backup system ?
     if (isLocked(localFilePath) == 0) {
         lockFile(localFilePath);
-        FILE *fd = fopen(localFilePath, "wb+");
+        FILE *fd = fopen(localFilePath, "w+");
 
         if (fd == NULL) {
             perror("FOPEN");
@@ -90,10 +89,13 @@ void getFile(int localSocket, char *argv0, char init[INSTR_SIZE]) {
             if (strncmp(instruction, STATUS_ERR, strlen(STATUS_ERR)) == 0) {
                 printf("CLIENT COULD NOT OPEN FILE, ABORT\n");
             } else { // OK.
-                memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
-                printf("RECEIVING %lld bytes => %lld packets of data\n", size, (size / BUFFER_SIZE) + 1);
-                fprintf(fd, "%s", "lock");
-                sleep(10);
+                while (strncmp(instruction, STATUS_DONE, strlen(STATUS_DONE) != 0)) {
+                    memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
+                    recvData(localSocket, instruction, data);
+                    
+                    if (strncmp(instruction, STATUS_DONE, strlen(STATUS_DONE) != 0))
+                        fwrite(data, sizeof(unsigned char), strlen(data), fd);
+                }
             }
         }
         unlockFile(localFilePath);

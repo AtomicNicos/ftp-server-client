@@ -23,8 +23,8 @@ void pprint(ull *bytes, int *contentSize, int *status, char *content, int sent) 
     printf("%s %lld BYTES, CONTENT OF SIZE %i     STATUS : %i\n==%s==\n\n", (sent == 1) ? "SENT" : "RECVD", *bytes, *contentSize, *status, content);
 }
 
-int sendData(int localSocket, char instruction[INSTR_SIZE + 1], char data[BUFFER_SIZE + 1]) {
-    char *amendedBuffer = malloc(PACKET_SIZE_INDIC + INSTR_SIZE + BUFFER_SIZE + 1);
+int sendData(int localSocket, unsigned char instruction[INSTR_SIZE + 1], unsigned char data[BUFFER_SIZE + 1]) {
+    unsigned char *amendedBuffer = malloc(PACKET_SIZE_INDIC + INSTR_SIZE + BUFFER_SIZE + 1);
     memset(amendedBuffer, 0, PACKET_SIZE_INDIC + INSTR_SIZE + BUFFER_SIZE + 1);
     
     snprintf(   amendedBuffer, 
@@ -36,7 +36,7 @@ int sendData(int localSocket, char instruction[INSTR_SIZE + 1], char data[BUFFER
     
     
     int CRC = computeCRC(amendedBuffer, strlen(amendedBuffer));
-    char *crcedBuffer = malloc(PACKET_SIZE + 1);
+    unsigned char *crcedBuffer = malloc(PACKET_SIZE + 1);
     snprintf(   crcedBuffer, 
                 PACKET_SIZE + 1, 
                 "%.4x%s",
@@ -51,11 +51,11 @@ int sendData(int localSocket, char instruction[INSTR_SIZE + 1], char data[BUFFER
     return size;
 }
 
-int recvData(int localSocket, char instruction[INSTR_SIZE + 1], char data[BUFFER_SIZE + 1]) {
-    char *buffer = malloc(PACKET_SIZE + 1);
+int recvData(int localSocket, unsigned char instruction[INSTR_SIZE + 1], unsigned char data[BUFFER_SIZE + 1]) {
+    unsigned char *buffer = malloc(PACKET_SIZE + 1);
     int size = recv(localSocket, buffer, PACKET_SIZE, 0);
 
-    char *CRC = malloc(CRC_SIZE + 1), *contentSize = malloc(PACKET_SIZE_INDIC + 1);
+    unsigned char *CRC = malloc(CRC_SIZE + 1), *contentSize = malloc(PACKET_SIZE_INDIC + 1);
     memset(CRC, 0, CRC_SIZE + 1); memset(contentSize, 0, PACKET_SIZE_INDIC + 1);
 
     snprintf(CRC, CRC_SIZE + 1, "%s", buffer);

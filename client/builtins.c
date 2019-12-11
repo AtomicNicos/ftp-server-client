@@ -31,7 +31,7 @@ char* list(int localSocket, int *_argc, char *argv0, char **_argv) {
     if (*_argc != 1)
         (WARN("-list: too many arguments.", "list"));
 
-    char *instruction = malloc(INSTR_SIZE + 1); char *data = malloc(BUFFER_SIZE + 1);
+    unsigned char *instruction = malloc(INSTR_SIZE + 1); unsigned char *data = malloc(BUFFER_SIZE + 1);
     memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
     sendData(localSocket, CMD_LIST, data);
     
@@ -67,7 +67,7 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
     else 
         (WARN("-upload: specified file does not exist.", "ul <file> [<file new name>]"));
 
-    char *instruction = malloc(INSTR_SIZE + 1); char *data = malloc(BUFFER_SIZE + 1);
+    unsigned char *instruction = malloc(INSTR_SIZE + 1); unsigned char *data = malloc(BUFFER_SIZE + 1);
     memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
 
     snprintf(instruction, INSTR_SIZE + 1, "%s 0x%.17llx", CMD_UPLOAD, fileLength);
@@ -124,7 +124,7 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
         printf("Could not create the file server side.\n");
     } else if (strncmp(instruction, STATUS_OK, strlen(STATUS_OK)) == 0) {
         printf("UPLOAD %lld bytes start\n", fileLength);
-        FILE *fd = fopen(localFilePath, "rb");
+        FILE *fd = fopen(localFilePath, "r");
         
         if (fd == NULL) {
             perror("FOPEN");
@@ -136,11 +136,16 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
             memset(instruction, 0, INSTR_SIZE + 1);
             snprintf(instruction, INSTR_SIZE + 1, "%s", CMD_BROADCAST);
             int n_read = 0;
-            while (n_read = fread(data, 1, BUFFER_SIZE, fd), n_read > 0) {  // While bytes can be read from the src file.
-                printf("READ %d => %s\n", n_read, data);
-
+            while (n_read = fread(data, sizeof(unsigned char), BUFFER_SIZE, fd), n_read > 0) {  // While bytes can be read from the src file.
+                
+                printf("NREAD %d\n", n_read);
+                sendData(localSocket, instruction, data);
                 memset(data, 0, BUFFER_SIZE + 1); 
             }
+
+            memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
+            snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_DONE);
+            sendData(localSocket, instruction, data);
         }
     }
     

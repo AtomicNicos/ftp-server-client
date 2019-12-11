@@ -83,11 +83,10 @@ int main(int argc, char **argv) {
             free(client_origin);
             free(addr);
         }
-
-        char *buffer = malloc(FRAME_SIZE + BUFFER_SIZE);
+        
         do {
-            char *instruction = malloc(INSTR_SIZE + 1);
-            char *data = malloc(BUFFER_SIZE + 1);
+            unsigned char *instruction = malloc(INSTR_SIZE + 1);
+            unsigned char *data = malloc(BUFFER_SIZE + 1);
             int size = recvData(client, instruction, data);
             printf("%ld TEXT |%s|\n", strlen(data), data);
 
@@ -106,7 +105,6 @@ int main(int argc, char **argv) {
             free(instruction);
             free(data);
         } while (clientConnected == 1);
-        free(buffer);
         close(client);
     } while(programShouldRun == 1);
 

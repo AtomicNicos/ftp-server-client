@@ -42,8 +42,8 @@ void printColorized(char *string, int ANSI_FGCOLOR, int ANSI_BGCOLOR, int ANSI_D
 
 void pprint(ull *bytes, int *contentSize, int *status, char *content, int sent);
 
-int sendData(int localSocket, char instruction[INSTR_SIZE], char data[BUFFER_SIZE]);
-int recvData(int localSocket, char instruction[INSTR_SIZE], char data[BUFFER_SIZE]);
+int sendData(int localSocket, unsigned char instruction[INSTR_SIZE], unsigned char data[BUFFER_SIZE]);
+int recvData(int localSocket, unsigned char instruction[INSTR_SIZE], unsigned char data[BUFFER_SIZE]);
 
 char **splitLine(char *line, int *count, char *tokens);
 
