@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
             free(client_origin);
             free(addr);
         }
-        
+
         do {
             unsigned char *instruction = malloc(INSTR_SIZE + 1);
             unsigned char *data = malloc(BUFFER_SIZE + 1);
@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
                 getFile(client, argv[0], instruction);
             }
 
-            usleep(2);
+            sleep(2);
             free(instruction);
             free(data);
         } while (clientConnected == 1);

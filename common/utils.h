@@ -11,8 +11,8 @@ typedef signed long long sll;
 #define EXIT_FAILURE 1
 #define SERVER_IP "127.0.0.1"
 
-#define BUFFER_SIZE         4096
-#define DATA_OFFSET         40
+#define BUFFER_SIZE         2048
+#define DATA_OFFSET         36
 #define INSTR_SIZE          32
 #define PACKET_SIZE         (BUFFER_SIZE + DATA_OFFSET)
 
@@ -42,7 +42,7 @@ void printColorized(char *string, int ANSI_FGCOLOR, int ANSI_BGCOLOR, int ANSI_D
 
 void pprint(ull *bytes, int *contentSize, int *status, char *content, int sent);
 
-int sendData(int localSocket, unsigned char instruction[INSTR_SIZE], unsigned char data[BUFFER_SIZE]);
+int sendData(int localSocket, unsigned char instruction[INSTR_SIZE], unsigned char data[BUFFER_SIZE], int contentLen);
 int recvData(int localSocket, unsigned char instruction[INSTR_SIZE], unsigned char data[BUFFER_SIZE]);
 
 char **splitLine(char *line, int *count, char *tokens);

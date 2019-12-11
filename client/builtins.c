@@ -5,6 +5,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <fcntl.h>
+
 #include "../common/utils.h"
 #include "../common/fileHandler.h"
 #include "builtins.h"
@@ -33,7 +35,7 @@ char* list(int localSocket, int *_argc, char *argv0, char **_argv) {
 
     unsigned char *instruction = malloc(INSTR_SIZE + 1); unsigned char *data = malloc(BUFFER_SIZE + 1);
     memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
-    sendData(localSocket, CMD_LIST, data);
+    sendData(localSocket, CMD_LIST, data, 0);
     
     usleep(1);
     recvData(localSocket, instruction, data);
@@ -42,8 +44,8 @@ char* list(int localSocket, int *_argc, char *argv0, char **_argv) {
     printf("[%ld] Remote Files\n", fCount);
     for (long i = 0; i < fCount; i++) {
         memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
-        usleep(1);
         recvData(localSocket, instruction, data);
+        sendData(localSocket, STATUS_OK, "", 0);
         printf("  [%ld] => %s\n", i + 1, data);
     }
     
@@ -71,18 +73,23 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
     memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
 
     snprintf(instruction, INSTR_SIZE + 1, "%s 0x%.17llx", CMD_UPLOAD, fileLength);
-    sendData(localSocket, instruction, data);
+    sendData(localSocket, instruction, data, 0);
+    printf("1 SENT <%s>\n", instruction);
     
     memset(instruction, 0, INSTR_SIZE + 1);
     snprintf(instruction, INSTR_SIZE + 1, "%s", CMD_NAME);
     snprintf(data, BUFFER_SIZE + 1, "%s", (renameMode == 1) ? _argv[2] : _argv[1]);
     
     usleep(1);
-    sendData(localSocket, instruction, data);
+    sendData(localSocket, instruction, data, strlen((renameMode == 1) ? _argv[2] : _argv[1]));
+    printf("2 SENT <%s>\n", instruction);
     
     memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
     usleep(1);
     recvData(localSocket, instruction, data);
+    printf("3 RECVD <%s>\n", instruction);
+    recvData(localSocket, instruction, data);
+    printf("3.1 RECVD <%s>\n", instruction);
 
     if (strncmp(instruction, CMD_OVERRIDE, strlen(CMD_OVERRIDE)) == 0) {
         printf("`%s` already exists on the server. OVERWRITE ? [Y/n] > ", (renameMode == 1) ? _argv[2] : _argv[1]);
@@ -104,48 +111,61 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
         if (change == 0) {
             printf("Client chose to ABORT.\n");
             snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_ERR);
-            sendData(localSocket, instruction, data);
+            sendData(localSocket, instruction, data, 0);
+            printf("4 SENT <%s>\n", instruction);
             free(localFilePath);
             return "NO OVERWRITE EXIT";
         } else {
-            snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_OK);
-            sendData(localSocket, instruction, data);
+            snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_EMPTY);
+            sendData(localSocket, instruction, data, 0);
+            printf("4 SENT <%s>\n", instruction);
         }
         memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
         usleep(1);
         recvData(localSocket, instruction, data);
+        printf("5 RECV <%s>\n", instruction);
     } else {
         printf("NO OVERWRITE\n");
     }
 
     if (strncmp(instruction, STATUS_RESINUSE, strlen(STATUS_RESINUSE)) == 0) { // Server notifies that the file is locked.
         printf("The resource is currently unavailable (java.io.ConcurrentModificationException)\n");
+        return "RIU";
     } else if (strncmp(instruction, STATUS_ERR, strlen(STATUS_ERR)) == 0) { // Server notifies that the file is locked.
         printf("Could not create the file server side.\n");
+        return "ERR";
     } else if (strncmp(instruction, STATUS_OK, strlen(STATUS_OK)) == 0) {
-        printf("UPLOAD %lld bytes start\n", fileLength);
-        FILE *fd = fopen(localFilePath, "r");
+        //printf("UPLOAD %lld bytes start\n", fileLength);
+        int fd = open(localFilePath, O_RDONLY, 0600);
         
-        if (fd == NULL) {
+        if (fd == -1) {
             perror("FOPEN");
             snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_ERR);
-            sendData(localSocket, instruction, data);
+            sendData(localSocket, instruction, data, 0);
+            printf("6 SENT <%s>\n", instruction);
         } else {
             snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_OK);
-            sendData(localSocket, instruction, data);
-            memset(instruction, 0, INSTR_SIZE + 1);
-            snprintf(instruction, INSTR_SIZE + 1, "%s", CMD_BROADCAST);
+            sendData(localSocket, instruction, data, 0);
+            printf("7 SENT <%s>\n", instruction);
             int n_read = 0;
-            while (n_read = fread(data, sizeof(unsigned char), BUFFER_SIZE, fd), n_read > 0) {  // While bytes can be read from the src file.
+            ull totalRead = 0;
+            while (totalRead < fileLength) {  // While bytes can be read from the src file.
+                memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1); 
                 
-                printf("NREAD %d\n", n_read);
-                sendData(localSocket, instruction, data);
-                memset(data, 0, BUFFER_SIZE + 1); 
+                snprintf(instruction, INSTR_SIZE + 1, "%s", CMD_BROADCAST);
+                n_read = fread(data, sizeof(unsigned char), BUFFER_SIZE, fd);
+                totalRead += (ull) n_read;
+                sendData(localSocket, instruction, data, n_read);
+                printf("8 SENT <%s>\n", instruction);
+                usleep(1);
+                recvData(localSocket, instruction, data);
+                printf("9 RECV <%s>\n", instruction);
             }
 
             memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
-            snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_DONE);
-            sendData(localSocket, instruction, data);
+            snprintf(instruction, INSTR_SIZE + 1, "%s", "\0");
+            sendData(localSocket, instruction, data, 0);
+            printf("10 SENT <%s>\n", instruction);
         }
     }
     

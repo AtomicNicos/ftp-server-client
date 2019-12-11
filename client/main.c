@@ -24,7 +24,7 @@ int server, clientShouldRun = 1;
  */
 void signalHandler(int signo) {
     if (signo == SIGINT || signo == SIGTERM || signo == SIGQUIT || signo == SIGHUP) {
-        sendData(server, CMD_EXIT, "");
+        sendData(server, CMD_EXIT, "", 0);
         clientShouldRun = 0;
     } else
         printf("WTF\n");
@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
             if (builtinCommand == NULL) {        // Not a builtin
                 if (*_argc == 1 && strncmp("exit", _argv[0], 4) == 0) {
                     if (strlen(_argv[0]) == 4) {
-                        sendData(server, CMD_EXIT, "");
+                        sendData(server, CMD_EXIT, "", 0);
                         printf("Bye\n");    // Leave.
                         clientShouldRun = 0;
                     } else 

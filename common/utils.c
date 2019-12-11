@@ -23,61 +23,59 @@ void pprint(ull *bytes, int *contentSize, int *status, char *content, int sent) 
     printf("%s %lld BYTES, CONTENT OF SIZE %i     STATUS : %i\n==%s==\n\n", (sent == 1) ? "SENT" : "RECVD", *bytes, *contentSize, *status, content);
 }
 
-int sendData(int localSocket, unsigned char instruction[INSTR_SIZE + 1], unsigned char data[BUFFER_SIZE + 1]) {
-    unsigned char *amendedBuffer = malloc(PACKET_SIZE_INDIC + INSTR_SIZE + BUFFER_SIZE + 1);
-    memset(amendedBuffer, 0, PACKET_SIZE_INDIC + INSTR_SIZE + BUFFER_SIZE + 1);
+int sendData(int localSocket, unsigned char instruction[INSTR_SIZE + 1], unsigned char data[BUFFER_SIZE + 1], int contentLen) {
+    if (strlen(instruction) == 0 && strlen(data) == 0)
+        return -1;
+    unsigned char amendedBuffer[INSTR_SIZE + BUFFER_SIZE + 1];
+    memset(&amendedBuffer, 0, INSTR_SIZE + BUFFER_SIZE + 1);
     
     snprintf(   amendedBuffer, 
-                PACKET_SIZE_INDIC + INSTR_SIZE + BUFFER_SIZE + 1, 
-                "%-*s%.4x%-*s",
-                INSTR_SIZE, instruction,
-                (int) strlen(data),
-                BUFFER_SIZE, data);
+                INSTR_SIZE + BUFFER_SIZE + 1, 
+                "%-*s%s",
+                INSTR_SIZE, instruction, data);
     
     
     int CRC = computeCRC(amendedBuffer, strlen(amendedBuffer));
-    unsigned char *crcedBuffer = malloc(PACKET_SIZE + 1);
+    unsigned char crcedBuffer[PACKET_SIZE + 1];
     snprintf(   crcedBuffer, 
                 PACKET_SIZE + 1, 
                 "%.4x%s",
                 CRC,
                 amendedBuffer);
 
-    printf("SENDING <%ld> |%s|\n", strlen(crcedBuffer), instruction);
-    int size = send(localSocket, crcedBuffer, PACKET_SIZE, 0);
-
-    free(amendedBuffer); free(crcedBuffer);
+    int size = send(localSocket, crcedBuffer, DATA_OFFSET + contentLen, 0);
+    //printf("SENDING <%d> |%s|\n", size, instruction);
 
     return size;
 }
 
 int recvData(int localSocket, unsigned char instruction[INSTR_SIZE + 1], unsigned char data[BUFFER_SIZE + 1]) {
     unsigned char *buffer = malloc(PACKET_SIZE + 1);
+    memset(buffer, 0, BUFFER_SIZE);
     int size = recv(localSocket, buffer, PACKET_SIZE, 0);
+    //printf("SIZE %d\n", size);
+    //printf("BUFFER\n|%s|\n", buffer);
 
-    unsigned char *CRC = malloc(CRC_SIZE + 1), *contentSize = malloc(PACKET_SIZE_INDIC + 1);
-    memset(CRC, 0, CRC_SIZE + 1); memset(contentSize, 0, PACKET_SIZE_INDIC + 1);
+    unsigned char *CRC = malloc(CRC_SIZE + 1);
+    memset(CRC, 0, CRC_SIZE + 1);
 
     snprintf(CRC, CRC_SIZE + 1, "%s", buffer);
-    snprintf(contentSize, PACKET_SIZE_INDIC + 1, "%s", buffer + CRC_SIZE + INSTR_SIZE);
 
-    long _contentSize = strtol(contentSize, NULL, 16);
     int arrivedCRC = (int) strtol(CRC, NULL, 16);
-    int calculatedCRC = computeCRC(buffer + CRC_SIZE, INSTR_SIZE + PACKET_SIZE_INDIC + BUFFER_SIZE);
+    int calculatedCRC = computeCRC(buffer + CRC_SIZE, size - DATA_OFFSET);
 
-    printf("ARR %.4x <=> %.4x CALC\n", arrivedCRC, calculatedCRC);
     if (arrivedCRC == 0)
         snprintf(instruction, INSTR_SIZE, "%s", STATUS_EMPTY);
     else if (arrivedCRC != calculatedCRC)
         snprintf(instruction, INSTR_SIZE, "%s", STATUS_ERR);
     
     snprintf(instruction, INSTR_SIZE + 1, "%s", buffer + CRC_SIZE);
-    snprintf(data, _contentSize + 1, "%s", buffer + DATA_OFFSET);
+    snprintf(data, BUFFER_SIZE + 1, "%s", buffer + DATA_OFFSET);
 
-    printf("%ld INSTR |%s|\n", strlen(instruction), instruction);
-
-    free(buffer); free(CRC); free(contentSize);
-    return (strncmp(instruction, STATUS_ERR, strlen(STATUS_ERR)) == 0 || strncmp(instruction, STATUS_EMPTY, strlen(STATUS_EMPTY)) == 0) ? -1 : _contentSize;
+    //printf("RECEIVING <%d> |%s|\n", size, instruction);
+    //printf("RECEIVING <%d> |%s|\n\n", size, data);
+    free(CRC);
+    return (strncmp(instruction, STATUS_ERR, strlen(STATUS_ERR)) == 0 || strncmp(instruction, STATUS_EMPTY, strlen(STATUS_EMPTY)) == 0) ? -1 : size - DATA_OFFSET;
 }
 
 /** @brief Tokenizes the user's input
