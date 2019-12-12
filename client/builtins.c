@@ -61,18 +61,18 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
 
     char *localFilePath = malloc(FILENAME_MAX + 1);
     snprintf(localFilePath, FILENAME_MAX, "%s/%s", getFilesFolder(argv0), _argv[1]);
-    ull fileLength = getLength(localFilePath);
-    ull fileChunks = fileLength / 4098L + 1L;
+    ull fileSize = getLength(localFilePath);
+    ull fileChunks = fileSize / 4098L + 1L;
 
-    if (fileLength > 0)
-        printf("FILE LEN %lld\n", fileLength);
+    if (fileSize > 0)
+        printf("FILE LEN %lld\n", fileSize);
     else 
         (WARN("-upload: specified file does not exist.", "ul <file> [<file new name>]"));
 
     unsigned char *instruction = malloc(INSTR_SIZE + 1); unsigned char *data = malloc(BUFFER_SIZE + 1);
     memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
 
-    snprintf(instruction, INSTR_SIZE + 1, "%s 0x%.17llx", CMD_UPLOAD, fileLength);
+    snprintf(instruction, INSTR_SIZE + 1, "%s 0x%.17llx", CMD_UPLOAD, fileSize);
     sendData(localSocket, instruction, data, 0);
     printf("1 SENT <%s>\n", instruction);
     
@@ -80,12 +80,12 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
     snprintf(instruction, INSTR_SIZE + 1, "%s", CMD_NAME);
     snprintf(data, BUFFER_SIZE + 1, "%s", (renameMode == 1) ? _argv[2] : _argv[1]);
     
-    usleep(1);
+   //usleep(1);
     sendData(localSocket, instruction, data, strlen((renameMode == 1) ? _argv[2] : _argv[1]));
     printf("2 SENT <%s>\n", instruction);
     
     memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
-    usleep(1);
+    //usleep(1);
     recvData(localSocket, instruction, data);
     printf("3 RECVD <%s>\n", instruction);
     recvData(localSocket, instruction, data);
@@ -106,7 +106,7 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
             free(result);
         } 
         
-        usleep(1);
+        //usleep(1);
         memset(instruction, 0, INSTR_SIZE + 1);
         if (change == 0) {
             printf("Client chose to ABORT.\n");
@@ -121,7 +121,7 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
             printf("4 SENT <%s>\n", instruction);
         }
         memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
-        usleep(1);
+        //usleep(1);
         recvData(localSocket, instruction, data);
         printf("5 RECV <%s>\n", instruction);
     } else {
@@ -135,42 +135,47 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
         printf("Could not create the file server side.\n");
         return "ERR";
     } else if (strncmp(instruction, STATUS_OK, strlen(STATUS_OK)) == 0) {
-        //printf("UPLOAD %lld bytes start\n", fileLength);
+        //printf("UPLOAD %lld bytes start\n", fileSize);
         int fd = open(localFilePath, O_RDONLY, 0600);
+        // FILE *fd = fopen(localFilePath, "rb");
         
         if (fd == -1) {
+        // if (fd == NULL) {
             perror("FOPEN");
             snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_ERR);
             sendData(localSocket, instruction, data, 0);
             printf("6 SENT <%s>\n", instruction);
         } else {
-            snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_OK);
-            sendData(localSocket, instruction, data, 0);
-            printf("7 SENT <%s>\n", instruction);
-            int n_read = 0;
+            int nRead = 0;
             ull totalRead = 0;
-            while (totalRead < fileLength) {  // While bytes can be read from the src file.
+            while (totalRead < fileSize) {  // While bytes can be read from the src file.
                 memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1); 
                 
                 snprintf(instruction, INSTR_SIZE + 1, "%s", CMD_BROADCAST);
-                n_read = fread(data, sizeof(unsigned char), BUFFER_SIZE, fd);
-                totalRead += (ull) n_read;
-                sendData(localSocket, instruction, data, n_read);
+                nRead = read(fd, data, BUFFER_SIZE);
+                // nRead = fread(data, 1, BUFFER_SIZE, fd);
+                totalRead += (ull) nRead;
+                
+                printf("WROTE %lld / %lld\n", totalRead, fileSize);
+                // usleep(5);
+                sendData(localSocket, instruction, data, nRead);
                 printf("8 SENT <%s>\n", instruction);
-                usleep(1);
+                // usleep(1);
                 recvData(localSocket, instruction, data);
                 printf("9 RECV <%s>\n", instruction);
             }
 
             memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
-            snprintf(instruction, INSTR_SIZE + 1, "%s", "\0");
+            snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_DONE);
             sendData(localSocket, instruction, data, 0);
             printf("10 SENT <%s>\n", instruction);
         }
+        close(fd);
+        // fclose(fd);
     }
-    
+
     memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
-    printf("HERE\n");
+    printf("END\n");
     free(localFilePath); free(instruction); free(data);
     
     return "builtin upload";

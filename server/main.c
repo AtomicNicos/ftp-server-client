@@ -88,7 +88,7 @@ int main(int argc, char **argv) {
             unsigned char *instruction = malloc(INSTR_SIZE + 1);
             unsigned char *data = malloc(BUFFER_SIZE + 1);
             int size = recvData(client, instruction, data);
-            printf("%ld TEXT |%s|\n", strlen(data), data);
+            printf("INSTR |%s|\n", instruction);
 
             if (size == 0 && strncmp(instruction, CMD_EXIT, strlen(CMD_EXIT)) == 0) {
                 printf("CLIENT EXITED\n");
@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
                 getFile(client, argv[0], instruction);
             }
 
-            sleep(2);
+            sleep(1);
             free(instruction);
             free(data);
         } while (clientConnected == 1);

@@ -24,14 +24,12 @@ int isValidPath(const char *path) {
 ull getLength(const char *path) {
     if (isValidPath(path) == 1) {
         ull length;
-        FILE *f = fopen(path, "rb");
-
-        if (f) {
-            fseek(f, 0, SEEK_END);
-            length = (ull) ftell(f);
-            fseek(f, 0, SEEK_SET);
-            return length;
-        } else return 0;
+        struct stat* statBuffer = malloc(sizeof(struct stat));
+        memset(statBuffer, 0, sizeof(struct stat));
+        int status = lstat(path, statBuffer);
+        ssize_t size = statBuffer->st_size;
+        free(statBuffer);
+        return size;
     } else return 0;
 }
 

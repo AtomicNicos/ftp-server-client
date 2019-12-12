@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <sys/socket.h>
 
@@ -26,8 +27,9 @@ void pprint(ull *bytes, int *contentSize, int *status, char *content, int sent) 
 int sendData(int localSocket, unsigned char instruction[INSTR_SIZE + 1], unsigned char data[BUFFER_SIZE + 1], int contentLen) {
     if (strlen(instruction) == 0 && strlen(data) == 0)
         return -1;
-    unsigned char amendedBuffer[INSTR_SIZE + BUFFER_SIZE + 1];
-    memset(&amendedBuffer, 0, INSTR_SIZE + BUFFER_SIZE + 1);
+    
+    unsigned char amendedBuffer[INSTR_SIZE + BUFFER_SIZE];
+    memset(&amendedBuffer, 0, INSTR_SIZE + BUFFER_SIZE);
     
     snprintf(   amendedBuffer, 
                 INSTR_SIZE + BUFFER_SIZE + 1, 
@@ -42,17 +44,24 @@ int sendData(int localSocket, unsigned char instruction[INSTR_SIZE + 1], unsigne
                 "%.4x%s",
                 CRC,
                 amendedBuffer);
+    
 
-    int size = send(localSocket, crcedBuffer, DATA_OFFSET + contentLen, 0);
-    //printf("SENDING <%d> |%s|\n", size, instruction);
+    int size = write(localSocket, crcedBuffer, DATA_OFFSET + contentLen);
+    printf("SENDING <%d> |%s|\n", size, instruction);
+    
+    if (size == 0 || size == -1)
+        perror("SEND DATA");
 
     return size;
 }
 
 int recvData(int localSocket, unsigned char instruction[INSTR_SIZE + 1], unsigned char data[BUFFER_SIZE + 1]) {
-    unsigned char *buffer = malloc(PACKET_SIZE + 1);
-    memset(buffer, 0, BUFFER_SIZE);
-    int size = recv(localSocket, buffer, PACKET_SIZE, 0);
+    unsigned char buffer[PACKET_SIZE];
+    memset(&buffer, 0, PACKET_SIZE);
+    int size = read(localSocket, buffer, sizeof buffer);
+
+    if (size == 0 || size == -1)
+        perror("RECV DATA");
     //printf("SIZE %d\n", size);
     //printf("BUFFER\n|%s|\n", buffer);
 
@@ -65,9 +74,9 @@ int recvData(int localSocket, unsigned char instruction[INSTR_SIZE + 1], unsigne
     int calculatedCRC = computeCRC(buffer + CRC_SIZE, size - DATA_OFFSET);
 
     if (arrivedCRC == 0)
-        snprintf(instruction, INSTR_SIZE, "%s", STATUS_EMPTY);
+        snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_EMPTY);
     else if (arrivedCRC != calculatedCRC)
-        snprintf(instruction, INSTR_SIZE, "%s", STATUS_ERR);
+        snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_ERR);
     
     snprintf(instruction, INSTR_SIZE + 1, "%s", buffer + CRC_SIZE);
     snprintf(data, BUFFER_SIZE + 1, "%s", buffer + DATA_OFFSET);

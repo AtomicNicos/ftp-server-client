@@ -12,3 +12,6 @@
 # Executable
 ftp-client
 ftp-server
+
+# Random
+test.py
