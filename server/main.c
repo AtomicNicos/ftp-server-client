@@ -90,13 +90,13 @@ int main(int argc, char **argv) {
             int size = recvData(client, instruction, data);
             printf("INSTR |%s|\n", instruction);
 
-            if (size == 0 && strncmp(instruction, CMD_EXIT, strlen(CMD_EXIT)) == 0) {
+            if (size == 0 && strncmp(instruction, CMD_EXIT, CMD_LEN) == 0) {
                 printf("CLIENT EXITED\n");
                 clientConnected = 0;
-            } else if (size == 0 && strncmp(instruction, CMD_LIST, strlen(CMD_LIST)) == 0) {
+            } else if (size == 0 && strncmp(instruction, CMD_LIST, CMD_LEN) == 0) {
                 printf("CLIENT ASK FOR LIST\n");
                 queryList(client, argv[0]);
-            }else if (size == 0 && strncmp(instruction, CMD_UPLOAD, strlen(CMD_UPLOAD)) == 0) {
+            }else if (size == 0 && strncmp(instruction, CMD_UPLOAD, CMD_LEN) == 0) {
                 printf("CLIENT WANTS TO UPLOAD\n");
                 receiveUpload(client, argv[0], instruction);
             }

@@ -6,7 +6,6 @@
 #include <string.h>
 
 #include <fcntl.h>
-#include <errno.h>
 
 #include "builtins.h"
 #include "../common/utils.h"
@@ -19,19 +18,20 @@ void queryList(int localSocket, char *argv0) {
 
     getFiles(getFilesFolder(argv0), files, fileCount);
 
-    memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
-    snprintf(instruction, INSTR_SIZE + 1, "FILES 0x%.4x", *fileCount);
+    C_ALL(instruction, data);
+    snprintf(instruction, INSTR_SIZE + 1, "%s 0x%.4x", CMD_FILES, *fileCount);
 
-    usleep(1);
-    sendData(localSocket, instruction, data, 0);
+    sendData(localSocket, instruction, data, 0);    // 01 OUT : FILES <num>
 
     for (int i = 0; i < *fileCount; i++) {
-        memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);   
-        snprintf(instruction, INSTR_SIZE + 1, "FILE 0x%.4x", i + 1);
+        usleep(5);
+        C_ALL(instruction, data); 
+        snprintf(instruction, INSTR_SIZE + 1, "%s 0x%.4x", CMD_FILE, i + 1);
         snprintf(data, BUFFER_SIZE + 1, "%s", files[i]);
-        usleep(4);
-        sendData(localSocket, instruction, data, strlen(files[i]));
-        recvData(localSocket, instruction, data);
+        sendData(localSocket, instruction, data, strlen(files[i])); // 02 OUT : FILE <name>
+
+        C_ALL(instruction, data);
+        recvData(localSocket, instruction, data);       // 03 IN  : OK
     }
     
     for (int i = 0; i < *fileCount; i++)
@@ -41,87 +41,86 @@ void queryList(int localSocket, char *argv0) {
     free(instruction); free(data);
 }
 
-
+/**
+ * TODO
+ */
 void receiveUpload(int localSocket, char *argv0, unsigned char init[INSTR_SIZE]) {
-    ull fileSize = strtoull(init + 3, NULL, 0);
+    ull fileSize = strtoull(init + CMD_LEN + 1, NULL, 0);
+    printf("FILE SIZE %llu\n", fileSize);
 
     unsigned char *instruction = malloc(INSTR_SIZE + 1); unsigned char *data = malloc(BUFFER_SIZE + 1);
     char *localFilePath = malloc(FILENAME_MAX + 1);
+    C_ALL(instruction, data); memset(localFilePath, 0, FILENAME_MAX + 1);
 
-    int len = recvData(localSocket, instruction, data);
+    usleep(2);
+    snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_OK);
+    sendData(localSocket, instruction, data, 0);  // 00.1 OUT : OK
+    DEBUG("=> OK\n");
+
+    int len = recvData(localSocket, instruction, data); // 01 IN  : NAME <value>
+    ODEBUG("<= %s\n", instruction);
+
     snprintf(localFilePath, FILENAME_MAX + 1, "%s/%s", getFilesFolder(argv0), data);
-    printf("1 RCVD <%s>\n", instruction);
-    //sleep(1);
-    
-    sendData(localSocket, STATUS_OK, "", 0);
-    printf("2 SENT <%s>\n", STATUS_OK);
-    memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
 
-    sleep(1);
-    // Determine if file should be overwritten.
+    // Determine if file should be overwritten, ie. if it exists locally.
     if (isValidPath(localFilePath) == 1) {
-        printf("EXISTS SO OVERRIDE ?\n");
-        snprintf(instruction, INSTR_SIZE + 1, "%s", CMD_OVERRIDE);
-        sendData(localSocket, instruction, data, 0);
-        printf("3 SENT <%s>\n", instruction);
-        //sleep(1);
+        snprintf(instruction, INSTR_SIZE + 1, "%s", CMD_OVERWRITE);
+        sendData(localSocket, instruction, data, 0);   // 02 OUT : OVERWRITE
+        DEBUG("=> OVERWRITE\n");
 
-        memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
-        recvData(localSocket, instruction, data);
-        
-        printf("4 RCVD <%s>\n", instruction);
-        //sleep(1);
+        C_ALL(instruction, data);
+        recvData(localSocket, instruction, data);       // 03|04 IN  : [ABORT|OK]
+        ODEBUG("<= %s\n", instruction);
 
-        if (strncmp(instruction, STATUS_ERR, strlen(STATUS_ERR)) == 0) {        
-            free(localFilePath);
+        if (strncmp(instruction, STATUS_ABORT, CMD_LEN) == 0) {        
+            free(localFilePath); free(instruction); free(data);
             return;
-        } else {
+        } else
             remove(localFilePath);
-        }
     }
-
-    // TODO ? Backup system ?
+    
+    // If the file is not being used by another client (upload or download), because data corruption.
     if (isLocked(localFilePath) == 0) {
         lockFile(localFilePath);
         int fd = open(localFilePath, O_CREAT | O_RDWR, 0600);
-        // FILE *fd = fopen(localFilePath, "wb+");
 
-        if (fd == -1) {
-        // if (fd == NULL) {
+        if (fd == -1) { // If the file could not be created or opened.
             perror("FOPEN");
-            snprintf(instruction, INSTR_SIZE + 1, STATUS_ERR);
-            sendData(localSocket, instruction, data, 0);
-            printf("5 SENT <%s>\n", instruction);
+            snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_ERR);
+            sendData(localSocket, instruction, data, 0);     // 05 OUT : ERROR
+            DEBUG("=> ERROR\n");
         } else {
-            snprintf(instruction, INSTR_SIZE + 1, STATUS_OK);
-            sendData(localSocket, instruction, data, 0);
-            printf("5 SENT <%s>\n", instruction);
+            snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_OK);
+            sendData(localSocket, instruction, data, 0);      // 06 OUT : OK
+            DEBUG("=> OK\n");
+            C_ALL(instruction, data);
 
-            //sleep(1);
-            memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
-
-            if (strncmp(instruction, STATUS_ERR, strlen(STATUS_ERR)) == 0) {
+            recvData(localSocket, instruction, data);       // 07|08 IN  : [ERROR|OK]
+            ODEBUG("<= %s\n", instruction);
+            if (strncmp(instruction, STATUS_ERR, CMD_LEN) == 0)
                 printf("CLIENT COULD NOT OPEN FILE, ABORT\n");
-            } else { // OK.
+            else {
+                snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_OK);
+                sendData(localSocket, instruction, data, 0);  // 08.1 OUT : OK
+                DEBUG("=> OK\n");
                 pullFile(localSocket, fd, fileSize);
             }
         }
 
-        sleep(1);
-        memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
+        C_ALL(instruction, data);
         snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_DONE);
-        sendData(localSocket, instruction, data, 0);
-        printf("9 SEND <%s>\n", instruction);
+        sendData(localSocket, instruction, data, 0);        // 09 OUT : DONE
+        DEBUG("=> DONE\n");
 
         close(fd);
-        // fclose(fd);
         unlockFile(localFilePath);
-        // ! WRITE TO FILE AT PATH
+        printf("Transfer of %s finished.\n", localFilePath);
     } else {
-        snprintf(instruction, INSTR_SIZE + 1, STATUS_RESINUSE);
-        sendData(localSocket, instruction, data, 0);
-        printf("10 SENT <%s>\n", instruction);
+        snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_RESINUSE);
+        sendData(localSocket, instruction, data, 0);        // 10 OUT : RESSOURCE_IN_USE
+        DEBUG("=> RIU\n");
     }
     
+    free(instruction); free(data);
     free(localFilePath);
 }

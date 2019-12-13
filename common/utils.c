@@ -21,10 +21,6 @@ void printColorized(char *string, int ANSI_FGCOLOR, int ANSI_BGCOLOR, int ANSI_D
     printf("\033[%i;%i;%im%s\033[0m%s", ANSI_DECO, ANSI_BGCOLOR, ANSI_FGCOLOR, string, (newLine == 1) ? "\n\0" : "\0");
 }
 
-void pprint(ull *bytes, int *contentSize, int *status, char *content, int sent) {
-    printf("%s %lld BYTES, CONTENT OF SIZE %i     STATUS : %i\n==%s==\n\n", (sent == 1) ? "SENT" : "RECVD", *bytes, *contentSize, *status, content);
-}
-
 int sendData(int localSocket, unsigned char instruction[INSTR_SIZE + 1], unsigned char data[BUFFER_SIZE + 1], int contentLen) {
     if (strlen(instruction) == 0 && strlen(data) == 0)
         return -1;
@@ -48,7 +44,6 @@ int sendData(int localSocket, unsigned char instruction[INSTR_SIZE + 1], unsigne
     
 
     int size = write(localSocket, crcedBuffer, DATA_OFFSET + contentLen);
-    printf("SENDING <%d> |%s|\n", size, instruction);
     
     if (size == 0 || size == -1)
         perror("SEND DATA");
@@ -63,8 +58,6 @@ int recvData(int localSocket, unsigned char instruction[INSTR_SIZE + 1], unsigne
 
     if (size == 0 || size == -1)
         perror("RECV DATA");
-    //printf("SIZE %d\n", size);
-    //printf("BUFFER\n|%s|\n", buffer);
 
     unsigned char *CRC = malloc(CRC_SIZE + 1);
     memset(CRC, 0, CRC_SIZE + 1);
@@ -82,8 +75,6 @@ int recvData(int localSocket, unsigned char instruction[INSTR_SIZE + 1], unsigne
     snprintf(instruction, INSTR_SIZE + 1, "%s", buffer + CRC_SIZE);
     snprintf(data, BUFFER_SIZE + 1, "%s", buffer + DATA_OFFSET);
 
-    //printf("RECEIVING <%d> |%s|\n", size, instruction);
-    //printf("RECEIVING <%d> |%s|\n\n", size, data);
     free(CRC);
     return (strncmp(instruction, STATUS_ERR, strlen(STATUS_ERR)) == 0 || strncmp(instruction, STATUS_EMPTY, strlen(STATUS_EMPTY)) == 0) ? -1 : size - DATA_OFFSET;
 }
@@ -138,11 +129,12 @@ char* getFilesFolder(char *argv0) {
     return dirPath;
 }
 
+//TODO DOC
 /** @author Guillaume Chanel, Prof. at UNIGE, gives a C course where the RDRW part of this code is provided in the public domain.
- * @brief Send a file over the wire.
- * @param localSocket
- * @param fd
- * @returns
+ *  @brief Send a file over the wire.
+ *  @param localSocket
+ *  @param fd
+ *  @returns
  */
 int pushFile(int localSocket, int fd) {
     unsigned char data[BUFFER_SIZE];
@@ -165,6 +157,9 @@ int pushFile(int localSocket, int fd) {
     return bytesRead;
 }
 
+/** @author Guillaume Chanel, Prof. at UNIGE, gives a C course where the RDRW part of this code is provided in the public domain.
+ *  TODO DOC
+ */
 int pullFile(int localSocket, int fd, ull fileSize) {
     unsigned char data[BUFFER_SIZE];
     ull nRead, amountRead = 0;

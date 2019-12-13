@@ -49,7 +49,8 @@ void getFiles(const char *path, char *files[FILENAME_MAX + 1], int *numberOfFile
         if (access(path, F_OK) != -1) { // If the program can access the object at the end of the path.
             if (folder) // Check innulability (yes I just invented a word)
                 while ((currentDir = readdir(folder))) {    // If children can be read.
-                    if (strcmp(currentDir->d_name, ".") && strcmp(currentDir->d_name, "..") && (len = strlen(currentDir->d_name)) > 4 && strcmp(currentDir->d_name + len - 5, ".lock")) { // And those children don't loop back to self or parent.s
+                    len = strlen(currentDir->d_name);
+                    if (strcmp(currentDir->d_name, ".") && strcmp(currentDir->d_name, "..") && ((len > 4 && strcmp(currentDir->d_name + len - 5, ".lock")) || len <= 4)) { // And those children don't loop back to self or parent.s
                         files[count] = (char*) malloc(FILENAME_MAX + 1); // Add it to the children's addresses (getting weird looks from the people at the FBI)
                         snprintf(files[count], FILENAME_MAX + 1, "%s", currentDir->d_name);  // Is a basename.
                         count++;

@@ -34,18 +34,22 @@ char* list(int localSocket, int *_argc, char *argv0, char **_argv) {
         (WARN("-list: too many arguments.", "list"));
 
     unsigned char *instruction = malloc(INSTR_SIZE + 1); unsigned char *data = malloc(BUFFER_SIZE + 1);
-    memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
-    sendData(localSocket, CMD_LIST, data, 0);
-    
+    C_ALL(instruction, data);
+    snprintf(instruction, INSTR_SIZE + 1, "%s", CMD_LIST);
+    sendData(localSocket, instruction, data, 0);   // 00 OUT : LIST
+    DEBUG("=> LIST\n");
     usleep(1);
-    recvData(localSocket, instruction, data);
+    recvData(localSocket, instruction, data);   // 01 IN  : FILES <num>
+    ODEBUG("<= %s\n", instruction);
 
-    long fCount = strtol(instruction + 6, NULL, 0);
+    long fCount = strtol(instruction + CMD_LEN + 1, NULL, 0);
+    printf("%s %lu\n", instruction, fCount);
+
     printf("[%ld] Remote Files\n", fCount);
     for (long i = 0; i < fCount; i++) {
-        memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
-        recvData(localSocket, instruction, data);
-        sendData(localSocket, STATUS_OK, "", 0);
+        C_ALL(instruction, data);
+        recvData(localSocket, instruction, data);   // 02 IN  : FILE <name>
+        sendData(localSocket, STATUS_OK, "", 0);    // 03 OUT : OK
         printf("  [%ld] => %s\n", i + 1, data);
     }
     
@@ -58,40 +62,34 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
         (WARN("-upload: invalid amount of arguments.", "ul <file> [<file new name>]"));
 
     int renameMode = (*_argc == 3) ? 1 : 0;
-
+    unsigned char *instruction = malloc(INSTR_SIZE + 1); unsigned char *data = malloc(BUFFER_SIZE + 1);
     char *localFilePath = malloc(FILENAME_MAX + 1);
+    C_ALL(instruction, data); memset(localFilePath, 0, FILENAME_MAX + 1);
+
     snprintf(localFilePath, FILENAME_MAX, "%s/%s", getFilesFolder(argv0), _argv[1]);
     ull fileSize = getLength(localFilePath);
-    ull fileChunks = fileSize / 4098L + 1L;
 
     if (fileSize > 0)
-        printf("FILE LEN %lld\n", fileSize);
+        printf("FILE SIZE IS %lld BYTES\n", fileSize);
     else 
         (WARN("-upload: specified file does not exist.", "ul <file> [<file new name>]"));
 
-    unsigned char *instruction = malloc(INSTR_SIZE + 1); unsigned char *data = malloc(BUFFER_SIZE + 1);
-    memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
-
     snprintf(instruction, INSTR_SIZE + 1, "%s 0x%.17llx", CMD_UPLOAD, fileSize);
-    sendData(localSocket, instruction, data, 0);
-    printf("1 SENT <%s>\n", instruction);
-    
-    memset(instruction, 0, INSTR_SIZE + 1);
+    sendData(localSocket, instruction, data, 0);    // 00 OUT : UPLOAD
+    C_ALL(instruction, data);
+    recvData(localSocket, instruction, data);       // 00.1 IN : OK
+
+    C_ALL(instruction, data);
     snprintf(instruction, INSTR_SIZE + 1, "%s", CMD_NAME);
     snprintf(data, BUFFER_SIZE + 1, "%s", (renameMode == 1) ? _argv[2] : _argv[1]);
-    
-   //usleep(1);
-    sendData(localSocket, instruction, data, strlen((renameMode == 1) ? _argv[2] : _argv[1]));
-    printf("2 SENT <%s>\n", instruction);
-    
-    memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
-    //usleep(1);
-    recvData(localSocket, instruction, data);
-    printf("3 RECVD <%s>\n", instruction);
-    recvData(localSocket, instruction, data);
-    printf("3.1 RECVD <%s>\n", instruction);
+    sendData(localSocket, instruction, data, strlen((renameMode == 1) ? _argv[2] : _argv[1])); // 01 OUT : NAME <value>
+    DEBUG("=> NAME\n");
 
-    if (strncmp(instruction, CMD_OVERRIDE, strlen(CMD_OVERRIDE)) == 0) {
+    C_ALL(instruction, data);
+    recvData(localSocket, instruction, data);       // 02|05|06 IN  : [OVERWRITE|ERROR|OK]
+    ODEBUG("<= %s\n", instruction);
+
+    if (strncmp(instruction, CMD_OVERWRITE, CMD_LEN) == 0) {
         printf("`%s` already exists on the server. OVERWRITE ? [Y/n] > ", (renameMode == 1) ? _argv[2] : _argv[1]);
         char *result;
         int change = -1;
@@ -106,58 +104,60 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
             free(result);
         } 
         
-        //usleep(1);
-        memset(instruction, 0, INSTR_SIZE + 1);
+        CINST(instruction);
         if (change == 0) {
             printf("Client chose to ABORT.\n");
-            snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_ERR);
-            sendData(localSocket, instruction, data, 0);
-            printf("4 SENT <%s>\n", instruction);
-            free(localFilePath);
+            snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_ABORT);
+            sendData(localSocket, instruction, data, 0);    // 03 OUT : ABORT
+            DEBUG("=> ABORT\n");
+            free(localFilePath); free(instruction); free(data);
             return "NO OVERWRITE EXIT";
         } else {
-            snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_EMPTY);
-            sendData(localSocket, instruction, data, 0);
-            printf("4 SENT <%s>\n", instruction);
+            snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_OK);
+            sendData(localSocket, instruction, data, 0);      // 04 OUT : OK
+            DEBUG("=> OK\n");
         }
-        memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
-        //usleep(1);
-        recvData(localSocket, instruction, data);
-        printf("5 RECV <%s>\n", instruction);
-    } else {
-        printf("NO OVERWRITE\n");
-    }
 
-    if (strncmp(instruction, STATUS_RESINUSE, strlen(STATUS_RESINUSE)) == 0) { // Server notifies that the file is locked.
+        C_ALL(instruction, data);
+        recvData(localSocket, instruction, data);   // 05|06|10 IN  : [ERROR|OK|RESSOURCE_IN_USE]
+        ODEBUG("<= %s\n", instruction);
+    }
+    
+    // Server notifies that the file is locked.
+    if (strncmp(instruction, STATUS_RESINUSE, CMD_LEN) == 0) { 
         printf("The resource is currently unavailable (java.io.ConcurrentModificationException)\n");
+        free (localFilePath); free(instruction); free(data);
         return "RIU";
-    } else if (strncmp(instruction, STATUS_ERR, strlen(STATUS_ERR)) == 0) { // Server notifies that the file is locked.
+    } else if (strncmp(instruction, STATUS_ERR, CMD_LEN) == 0) { // Server notifies that the file is locked.
         printf("Could not create the file server side.\n");
+        free (localFilePath); free(instruction); free(data);
         return "ERR";
-    } else if (strncmp(instruction, STATUS_OK, strlen(STATUS_OK)) == 0) {
-        //printf("UPLOAD %lld bytes start\n", fileSize);
+    } else if (strncmp(instruction, STATUS_OK, CMD_LEN) == 0) {
         int fd = open(localFilePath, O_RDONLY, 0600);
-        // FILE *fd = fopen(localFilePath, "rb");
         
         if (fd == -1) {
-        // if (fd == NULL) {
             perror("FOPEN");
             snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_ERR);
-            sendData(localSocket, instruction, data, 0);
-            printf("6 SENT <%s>\n", instruction);
+            sendData(localSocket, instruction, data, 0); // 07 OUT : ERROR
+            DEBUG("=> ERROR\n");
         } else {
+            snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_OK);
+            sendData(localSocket, instruction, data, 0);  // 08 OUT : OK
+            DEBUG("=> OK\n");
+
+            recvData(localSocket, instruction, data);   // 08.1 IN  : OK
+            ODEBUG("<= %s\n", instruction);
+            
             pushFile(localSocket, fd);
 
-            memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
-            recvData(localSocket, instruction, data);
-            printf("10 RECV <%s>\n", instruction);
+            C_ALL(instruction, data);
+            recvData(localSocket, instruction, data);   // 09 IN  : DONE
+            ODEBUG("<= %s\n", instruction);
         }
         close(fd);
-        // fclose(fd);
     }
 
-    memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
-    printf("END\n");
+    C_ALL(instruction, data);
     free(localFilePath); free(instruction); free(data);
     
     return "builtin upload";

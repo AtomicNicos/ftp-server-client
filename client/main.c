@@ -70,13 +70,7 @@ int main(int argc, char **argv) {
 
     unsigned char *instruction = malloc(INSTR_SIZE + 1);
     unsigned char *data = malloc(BUFFER_SIZE + 1);
-    //snprintf(instruction, INSTR_SIZE + 1, "%s", "HELPHELPHELPHELPHELPHELPHELPHELP");
-    //snprintf(data, BUFFER_SIZE + 1, "%s", "ERNUCNFOWBGYLRFCCRWFHKRYBYBKTGFNMYXZQSJYVKOZVFYXYHTOSYIKEGNIRBWZKLSPVGGGBCKBETEGQYYYSTTFYLVPGXQJGZZCDUIHNTVBBKTHPMZKSQGCZSLCFRKENUNSFISGQJLYDHZEVPLORVKLNJBGNEEEBXVKHJDCTGQOMRLZJOLYXBVVFZJIGZIWOHEGTXRUWDMMLTFWIDLLFQJMFOQWJNPSNCCDBMJPEYNXQFKSJQGTJOZGWMMRJMCRXCFBHXJRNSDXQQVXMMDJYEEIHPRPSLDDWRLUXBJUIRUSZGLOMNDWHBEZNTUDYIJXWTGZKGDWDZLROWMYMFZQDOLQVQCFQLCCRTPQCPOJXNEHSRLMKGFYUDZNVPDNRCYEEDNDJRBMRLZBPZFQSMCOHBUZJZKCEYFMZVKVYZITCEXUUWJGNIQJYDTVLQRJGWUKRZXXDKORKLULQBHUZKLZSNFCVQSGVKYHWPTWLTRXLLDEPCNNMXQVEUQVISHPEUFITZERDZEOYSZOXNXQISBPNCT");
-
-    //sendData(server, instruction, data);
-
     do {
-
         memset(instruction, 0, INSTR_SIZE + 1);
         memset(data, 0, BUFFER_SIZE + 1);
 
@@ -103,12 +97,10 @@ int main(int argc, char **argv) {
                     fprintf(stderr, "\nCommand '%s' not found.\n\n", _argv[0]);
                 }
             } else if (strlen(builtinCommand) == 2 && strncmp(builtinCommand, "NO", 2) == 0) {
-                printf("ERROR %s\n", builtinCommand);
+                printf("ERROR %s\n", _argv[0]);
             }
         }
             
-        // TODO Perhaps check server liveliness
-    
         // Cleanup
         for (int i = 0; i < *_argc; i++) {
             _argv[i] = realloc(_argv[i], 0);
