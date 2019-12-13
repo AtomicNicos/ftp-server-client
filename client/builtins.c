@@ -125,6 +125,8 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
             snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_ABORT);
             sendData(localSocket, instruction, data, 0);    // 03 OUT : ABORT
             DEBUG("=> ABORT");
+            
+            C_ALL(instruction, data);
             free(localFilePath); free(instruction); free(data);
             return "NO OVERWRITE EXIT";
         } else {
@@ -206,7 +208,7 @@ char* download(int localSocket, int *_argc, char *argv0, char **_argv) {
     DEBUG("=> NAME");
 
     C_ALL(instruction, data);
-    recvData(localSocket, instruction, data);       // 02|03|04 IN  : [ERROR|RIU|OK <size>]
+    recvData(localSocket, instruction, data);       // 02|03|04 IN  : [ERROR|RESOURCE_IN_SOURCE|OK <size>]
     ODEBUG("<= %s", instruction);
 
     if (strncmp(instruction, STATUS_RESINUSE, CMD_LEN) == 0) {
@@ -219,6 +221,42 @@ char* download(int localSocket, int *_argc, char *argv0, char **_argv) {
         // Check file exists, prompt override / abort
         ull fileSize = strtoull(instruction + CMD_LEN + 1, NULL, 0);
 
+        if (isValidPath(localFilePath) == 1) {
+            printf("`%s` already exists on the server. OVERWRITE ? [Y/n] > ", (renameMode == 1) ? _argv[2] : _argv[1]);
+            char *result;
+            int change = -1;
+            while (change == -1) {
+                result = getLine();
+                if (strlen(result) == 1 && (strncmp(result, "Y", 1) == 0 || strncmp(result, "y", 1) == 0))
+                    change = 1;
+                else if (strlen(result) == 1 && (strncmp(result, "N", 1) == 0 || strncmp(result, "n", 1) == 0))
+                    change = 0;
+                else
+                    printf("Invalid answer. OVERWRITE ? [Y/n] > ");
+                free(result);
+            }
+
+            if (change == 0) {
+                printf("Client chose to ABORT.\n");
+                snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_ABORT);
+                sendData(localSocket, instruction, data, 0);    // 05 OUT : ABORT
+                DEBUG("=> ABORT");
+                C_ALL(instruction, data);
+                free(localFilePath); free(instruction); free(data);
+                return "NO OVERWRITE EXIT";
+            } else {
+                snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_OK);
+                sendData(localSocket, instruction, data, 0);    // 06 OUT : OK
+                DEBUG("=> OK");
+            }
+
+
+            // OVERWRITE () SEND OK
+            // OR SEND ABORT
+        } else {
+            // OK
+            // pullFILE
+        }
         printf("FSIZE = %llu\n", fileSize);
     }    
     

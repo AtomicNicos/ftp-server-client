@@ -156,13 +156,35 @@ void pushDownload(int localSocket, char *argv0, unsigned char init[INSTR_SIZE]) 
         sendData(localSocket, instruction, data, 0);
         DEBUG("=> RIU");
     } else if (isLocked(localFilePath) == 1) {
-        snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_RESINUSE);   // 02 OUT : RESOURCE_IN_USE
+        snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_RESINUSE);   // 03 OUT : RESOURCE_IN_USE
         sendData(localSocket, instruction, data, 0);
         DEBUG("=> RIU");
     } else {
         ull fileSize = getLength(localFilePath);
         snprintf(instruction, INSTR_SIZE + 1, "%s 0x%.17llx", STATUS_OK, fileSize);
-        sendData(localSocket, instruction, data, 0);
+        sendData(localSocket, instruction, data, 0);    // 04 OUT : OK <size>
         ODEBUG("=> %s", instruction);
+
+        C_ALL(instruction, data);
+        recvData(localSocket, instruction, data);   // [05|06] IN  : [ABORT|OK]
+        
+        if (strncmp(instruction, STATUS_ABORT, CMD_LEN) == 0) {
+            printf("CLIENT CHOSE TO ABORT\n");   
+        } else {
+            C_ALL(instruction, data);
+            lockFile(localFilePath);
+            
+            int fd = open(localFilePath, O_CREAT | O_RDWR, 0600);
+            if (fd == -1) {
+                snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_ABORT);
+                sendData(localSocket, instruction, data, 0);    // 07 OUT : ABORT
+                DEBUG("=> %s");
+            } else {
+                //OK
+            }
+
+            unlockFile(localFilePath);
+        }
+        
     }
 }

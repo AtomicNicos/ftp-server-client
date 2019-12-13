@@ -7,9 +7,6 @@ typedef unsigned short  crc;
 #define TOPBIT   (1 << (WIDTH - 1))
 
 #define CRC_SIZE            4   // bytes
-#define PACKET_INFO_SIZE    4   // bytes
-#define PACKET_SIZE_INDIC   4   // bytes
-#define FRAME_SIZE          (2 * (PACKET_INFO_SIZE) + (PACKET_SIZE_INDIC) + (CRC_SIZE))
 
 #define POLYNOMIAL			0x8005
 #define INITIAL_REMAINDER	0x0000
