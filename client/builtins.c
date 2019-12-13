@@ -222,7 +222,7 @@ char* download(int localSocket, int *_argc, char *argv0, char **_argv) {
         ull fileSize = strtoull(instruction + CMD_LEN + 1, NULL, 0);
 
         if (isValidPath(localFilePath) == 1) {
-            printf("`%s` already exists on the server. OVERWRITE ? [Y/n] > ", (renameMode == 1) ? _argv[2] : _argv[1]);
+            printf("`%s` already exists locally. OVERWRITE ? [Y/n] > ", _argv[1]);
             char *result;
             int change = -1;
             while (change == -1) {
@@ -248,6 +248,8 @@ char* download(int localSocket, int *_argc, char *argv0, char **_argv) {
                 snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_OK);
                 sendData(localSocket, instruction, data, 0);    // 06 OUT : OK
                 DEBUG("=> OK");
+
+
             }
 
 
