@@ -202,3 +202,37 @@ void pushDownload(int localSocket, char *argv0, unsigned char init[INSTR_SIZE]) 
     C_ALL(instruction, data); memset(localFilePath, 0, FILENAME_MAX + 1);
     free(instruction); free(data); free(localFilePath);
 }
+
+void deleteFile(int localSocket, char *argv0, unsigned char init[INSTR_SIZE]) {
+    unsigned char *instruction = malloc(INSTR_SIZE + 1), *data = malloc(BUFFER_SIZE + 1);
+    char *localFilePath = malloc(FILENAME_MAX + 1);
+    memset(localFilePath, 0, FILENAME_MAX + 1);
+
+    C_ALL(instruction, data);
+    snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_OK);
+    sendData(localSocket, instruction, data, 0);   // 00.1 OUT : OK
+    DEBUG("=> OK");
+
+    C_ALL(instruction, data);
+    recvData(localSocket, instruction, data); // 01 IN  : NAME <value>
+    ODEBUG("<= NAME %s", data);
+
+    snprintf(localFilePath, FILENAME_MAX, "%s/%s", getFilesFolder(argv0), data);
+
+    C_ALL(instruction, data);
+    if (isValidPath(localFilePath) == 0)
+        snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_ERR);    // 02 OUT : ERROR
+    else if (isLocked(localFilePath) == 1)
+        snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_RESINUSE);    // 03 OUT : RIU
+    else {
+        if (remove(localFilePath) == -1)
+            snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_DENY);    // 04 OUT : DENY
+        else
+            snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_OK);    // 05 OUT : OK
+    }
+
+    sendData(localSocket, instruction, data, 0);    // [02|03|04|06] OUT : [ERROR|RIU|DENY|OK]
+
+    C_ALL(instruction, data); memset(localFilePath, 0, FILENAME_MAX + 1);
+    free(instruction); free(data); free(localFilePath);
+}

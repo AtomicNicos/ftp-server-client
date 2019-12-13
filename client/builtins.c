@@ -185,14 +185,17 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
     return "builtin upload";
 }
 
+/**
+ * TODO
+ */
 char* download(int localSocket, int *_argc, char *argv0, char **_argv) {
     if (*_argc != 2)
         (WARN("-download: invalid amount of arguments.", "ul <file> [<file new name>]"));
     
     unsigned char *instruction = malloc(INSTR_SIZE + 1), *data = malloc(BUFFER_SIZE + 1);
+    
     char *localFilePath = malloc(FILENAME_MAX + 1);
     memset(localFilePath, 0, FILENAME_MAX + 1);
-
     snprintf(localFilePath, FILENAME_MAX, "%s/%s", getFilesFolder(argv0), _argv[1]);
 
     C_ALL(instruction, data); 
@@ -296,8 +299,69 @@ char* download(int localSocket, int *_argc, char *argv0, char **_argv) {
     return "builtin download";
 }
 
+char *deleteFile(int localSocket, int *_argc, char *argv0, char **_argv) {
+    if (*_argc != 3)
+        (WARN("-delete: invalid amount of arguments.", "del (l: local|d: distant) <file name>"));
+
+    if (strncmp(_argv[1], "l", 1) == 0 || strncmp(_argv[1], "L", 1) == 0) {
+        char *localFilePath = malloc(FILENAME_MAX + 1);
+        memset(localFilePath, 0, FILENAME_MAX + 1);
+
+        snprintf(localFilePath, FILENAME_MAX, "%s/%s", getFilesFolder(argv0), _argv[2]);
+
+        if (isValidPath(localFilePath) == 1) {
+            if (remove(localFilePath) == -1) {
+                printColorized("`", 32, 40, 0, 0); printColorized(_argv[2], 32, 40, 0, 0); printColorized("`", 32, 40, 0, 0); printColorized(" could not be deleted.", 32, 40, 0, 1); 
+            } else {
+                printColorized("`", 32, 40, 0, 0); printColorized(_argv[2], 32, 40, 0, 0); printColorized("`", 32, 40, 0, 0); printColorized(" successfully deleted.", 32, 40, 0, 1); 
+            }
+        } else {
+            printColorized("`", 32, 40, 0, 0); printColorized(_argv[2], 32, 40, 0, 0); printColorized("`", 32, 40, 0, 0); printColorized(" does not exist on the server.", 32, 40, 0, 1); 
+        }
+
+        free(localFilePath);
+    } else if (strncmp(_argv[1], "d", 1) == 0 || strncmp(_argv[1], "D", 1) == 0) {
+        unsigned char *instruction = malloc(INSTR_SIZE + 1), *data = malloc(BUFFER_SIZE + 1);
+        C_ALL(instruction, data);
+
+        snprintf(instruction, INSTR_SIZE + 1, "%s", CMD_DELETE);
+        sendData(localSocket, instruction, data, 0);            // 00 OUT : DELETE
+        DEBUG("=> DELETE");
+
+        C_ALL(instruction, data);
+        recvData(localSocket, instruction, data);               // 00.1 IN  : OK
+        ODEBUG("<= %s", instruction);
+
+        C_ALL(instruction, data);
+        snprintf(instruction, INSTR_SIZE + 1, "%s", CMD_NAME);
+        snprintf(data, BUFFER_SIZE + 1, "%s", _argv[2]);
+        sendData(localSocket, instruction, data, strlen(data));  // 01 OUT : NAME <value>
+        DEBUG("=> NAME");
+
+        C_ALL(instruction, data);
+        recvData(localSocket, instruction, data);               // [02|03|04|05] IN  : [ERROR|RIU|DENY|OK]
+        ODEBUG("<= %s", instruction);
+
+        if (strncmp(instruction, STATUS_ERR, CMD_LEN) == 0) {
+            printColorized("`", 32, 40, 0, 0); printColorized(_argv[2], 32, 40, 0, 0); printColorized("`", 32, 40, 0, 0); printColorized(" does not exist on the server.", 32, 40, 0, 1); 
+        } else if (strncmp(instruction, STATUS_DENY, CMD_LEN) == 0) {
+            printColorized("`", 32, 40, 0, 0); printColorized(_argv[2], 32, 40, 0, 0); printColorized("`", 32, 40, 0, 0); printColorized(" could not be deleted from the server.", 32, 40, 0, 1); 
+        } else if (strncmp(instruction, STATUS_RESINUSE, CMD_LEN) == 0) {
+            printColorized("`", 32, 40, 0, 0); printColorized(_argv[2], 32, 40, 0, 0); printColorized("`", 32, 40, 0, 0); printColorized(" is currently in use on the server.", 32, 40, 0, 1); 
+        } else {
+            printColorized("`", 92, 40, 0, 0); printColorized(_argv[2], 92, 40, 0, 0); printColorized("`", 92, 40, 0, 0); printColorized(" successfully deleted from the server.", 92, 40, 0, 1);
+        }
+        
+        C_ALL(instruction, data);
+        free(instruction); free(data);
+    } else
+        (WARN("-delete: Invalid locale specifier.", "del (l: local|d: distant) <file name>"));
+    
+    return "DELETE FILE";
+}
+
 char* getHelp(int localSocket, int *_argc, char *argv0, char **_argv) {
-    printf("Built-ins :\n- help\n- cd [<dir>]\n- list\n- ul <file> [...]\n- dl <file> [...]\n");
+    printf("Built-ins :\n- help\n- list\n- ul <file> [...]\n- dl <file> [...]\n- del (l: local|d: distant) <file name>\n");
     return "NO";
 }
 
@@ -306,6 +370,7 @@ char* (*builtin[]) (int, int *, char*, char **) = {
     &list,
     &upload,
     &download,
+    &deleteFile,
     &getHelp
 };
 
@@ -314,6 +379,7 @@ char *builtins[] = {
     "list",
     "ul",
     "dl",
+    "del",
     "help"
 };
 

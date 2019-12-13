@@ -3,7 +3,7 @@
 
 #include "../common/utils.h"
 
-#define BUILTINS_COUNT 4
+#define BUILTINS_COUNT 5
 
 void print_prompt(char *user, char *host, char *cwd);
 

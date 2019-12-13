@@ -103,6 +103,9 @@ int main(int argc, char **argv) {
             } else if (size == 0 && strncmp(instruction, CMD_DOWNLOAD, CMD_LEN) == 0) {
                 printf("CLIENT WANTS TO DOWNLOAD\n");
                 pushDownload(client, argv[0], instruction);
+            } else if (size == 0 && strncmp(instruction, CMD_DELETE, CMD_LEN) == 0) {
+                printf("CLIENT WANTS TO DELETE\n");
+                deleteFile(client, argv[0], instruction);
             }
 
             sleep(1);

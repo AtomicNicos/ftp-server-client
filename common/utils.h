@@ -29,6 +29,7 @@ typedef signed long long sll;
 #define CMD_OVERWRITE   "OVWR"
 #define CMD_FILES       "FILS"
 #define CMD_FILE        "FILE"
+#define CMD_DELETE      "DELE"
 
 #define STATUS_OK       "OKOK"
 #define STATUS_DONE     "DONE"
