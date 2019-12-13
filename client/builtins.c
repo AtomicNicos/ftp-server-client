@@ -54,13 +54,13 @@ char* list(int localSocket, int *_argc, char *argv0, char **_argv) {
     printf("[%ld] Remote Files\n", fCount);
     for (long i = 0; i < fCount; i++) {
         C_ALL(instruction, data);
-        recvData(localSocket, instruction, data);   // 02 IN  : FILE <name>
+        recvData(localSocket, instruction, data);   // 03 IN  : FILE <name>
         ODEBUG("<= %s", instruction);
         printf("  [%ld] => %s\n", i + 1, data);
 
         C_ALL(instruction, data);
         snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_OK);
-        sendData(localSocket, instruction, data, 0);
+        sendData(localSocket, instruction, data, 0);    // 04 OUT : OK
         DEBUG("=> OK");
     }
 
@@ -69,6 +69,9 @@ char* list(int localSocket, int *_argc, char *argv0, char **_argv) {
     return "builtin list";
 }
 
+/**
+ * TODO
+ */
 char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
     if (*_argc != 2 && *_argc != 3)
         (WARN("-upload: invalid amount of arguments.", "ul <file> [<file new name>]"));
@@ -208,7 +211,7 @@ char* download(int localSocket, int *_argc, char *argv0, char **_argv) {
     DEBUG("=> NAME");
 
     C_ALL(instruction, data);
-    recvData(localSocket, instruction, data);       // 02|03|04 IN  : [ERROR|RESOURCE_IN_SOURCE|OK <size>]
+    recvData(localSocket, instruction, data);       // 02|03|04|05 IN  : [ERROR|RESOURCE_IN_SOURCE|DENY|OK <size>]
     ODEBUG("<= %s", instruction);
 
     if (strncmp(instruction, STATUS_RESINUSE, CMD_LEN) == 0) {
@@ -217,9 +220,13 @@ char* download(int localSocket, int *_argc, char *argv0, char **_argv) {
     } else if (strncmp(instruction, STATUS_ERR, CMD_LEN) == 0) {
         printColorized("The file does not exist on the server.", 32, 40, 0, 1);
         return "ERR";
+    } else if (strncmp(instruction, STATUS_DENY, CMD_LEN) == 0) {
+        printColorized("The file cannot be read on the server.", 32, 40, 0, 1);
+        return "DENY";
     } else {
         // Check file exists, prompt override / abort
         ull fileSize = strtoull(instruction + CMD_LEN + 1, NULL, 0);
+        ODEBUG("FSIZE %llu", fileSize);
 
         if (isValidPath(localFilePath) == 1) {
             printf("`%s` already exists locally. OVERWRITE ? [Y/n] > ", _argv[1]);
@@ -239,28 +246,52 @@ char* download(int localSocket, int *_argc, char *argv0, char **_argv) {
             if (change == 0) {
                 printf("Client chose to ABORT.\n");
                 snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_ABORT);
-                sendData(localSocket, instruction, data, 0);    // 05 OUT : ABORT
+                sendData(localSocket, instruction, data, 0);    // 06 OUT : ABORT
                 DEBUG("=> ABORT");
+
                 C_ALL(instruction, data);
                 free(localFilePath); free(instruction); free(data);
                 return "NO OVERWRITE EXIT";
-            } else {
-                snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_OK);
-                sendData(localSocket, instruction, data, 0);    // 06 OUT : OK
-                DEBUG("=> OK");
-
-
             }
-
-
-            // OVERWRITE () SEND OK
-            // OR SEND ABORT
-        } else {
-            // OK
-            // pullFILE
         }
-        printf("FSIZE = %llu\n", fileSize);
+
+        C_ALL(instruction, data);
+        remove(localFilePath);
+        int fd = open(localFilePath, O_CREAT | O_RDWR, 0600);
+
+        if (fd == -1 || isLocked(localFilePath)) {
+            printf("File Innacessible.\n");
+            snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_DENY);
+            sendData(localSocket, instruction, data, 0);    // 07 OUT : DENY
+            DEBUG("=> DENY");
+
+            C_ALL(instruction, data);
+            free(localFilePath); free(instruction); free(data);
+            return "FILE INNACESSIBLE";
+        } else {
+            
+            lockFile(localFilePath);
+
+            snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_OK);
+            sendData(localSocket, instruction, data, 0);    // 08 OUT : OK
+            DEBUG("=> OK");
+            ODEBUG("FSIZE %llu", fileSize);
+            DEBUG("PULL");
+            pullFile(localSocket, fd, fileSize);
+
+            C_ALL(instruction, data);
+            snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_DONE);
+            sendData(localSocket, instruction, data, 0);    // 09 OUT : DONE
+            DEBUG("=> DONE");
+
+            unlockFile(localFilePath);
+        }
+
+        close(fd);
     }    
+
+    C_ALL(instruction, data); memset(localFilePath, 0, FILENAME_MAX + 1);
+    free(instruction); free(data); free(localFilePath);
     
     return "builtin download";
 }

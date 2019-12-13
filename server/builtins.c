@@ -11,6 +11,9 @@
 #include "../common/utils.h"
 #include "../common/fileHandler.h"
 
+/**
+ * TODO
+ */
 void queryList(int localSocket, char *argv0) {
     char *instruction = malloc(INSTR_SIZE + 1); char *data = malloc(BUFFER_SIZE + 1);
     char *files[FILENAME_MAX];
@@ -33,11 +36,11 @@ void queryList(int localSocket, char *argv0) {
         C_ALL(instruction, data); 
         snprintf(instruction, INSTR_SIZE + 1, "%s 0x%.4x", CMD_FILE, i + 1);
         snprintf(data, BUFFER_SIZE + 1, "%s", files[i]);
-        sendData(localSocket, instruction, data, strlen(files[i])); // 02 OUT : FILE <name>
+        sendData(localSocket, instruction, data, strlen(files[i])); // 03 OUT : FILE <name>
         DEBUG("=> FILE");
 
         C_ALL(instruction, data);
-        recvData(localSocket, instruction, data);
+        recvData(localSocket, instruction, data);   // 04 IN  : OK
         ODEBUG("<= %s", instruction);
     }
 
@@ -128,6 +131,7 @@ void receiveUpload(int localSocket, char *argv0, unsigned char init[INSTR_SIZE])
         DEBUG("=> RIU");
     }
     
+    C_ALL(instruction, data); memset(localFilePath, 0, FILENAME_MAX + 1);
     free(instruction); free(data); free(localFilePath);
 }
 
@@ -160,31 +164,41 @@ void pushDownload(int localSocket, char *argv0, unsigned char init[INSTR_SIZE]) 
         sendData(localSocket, instruction, data, 0);
         DEBUG("=> RIU");
     } else {
-        ull fileSize = getLength(localFilePath);
-        snprintf(instruction, INSTR_SIZE + 1, "%s 0x%.17llx", STATUS_OK, fileSize);
-        sendData(localSocket, instruction, data, 0);    // 04 OUT : OK <size>
-        ODEBUG("=> %s", instruction);
-
+        int fd = open(localFilePath, O_CREAT | O_RDWR, 0600);
         C_ALL(instruction, data);
-        recvData(localSocket, instruction, data);   // [05|06] IN  : [ABORT|OK]
-        
-        if (strncmp(instruction, STATUS_ABORT, CMD_LEN) == 0) {
-            printf("CLIENT CHOSE TO ABORT\n");   
+        if (fd == -1) {
+            snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_DENY);
+            sendData(localSocket, instruction, data, 0);    // 04 OUT : DENY
+            DEBUG("=> DENY");
         } else {
-            C_ALL(instruction, data);
-            lockFile(localFilePath);
-            
-            int fd = open(localFilePath, O_CREAT | O_RDWR, 0600);
-            if (fd == -1) {
-                snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_ABORT);
-                sendData(localSocket, instruction, data, 0);    // 07 OUT : ABORT
-                DEBUG("=> %s");
-            } else {
-                //OK
-            }
+            ull fileSize = getLength(localFilePath);
+            snprintf(instruction, INSTR_SIZE + 1, "%s 0x%.17llx", STATUS_OK, fileSize);
+            sendData(localSocket, instruction, data, 0);    // 05 OUT : OK <size>
+            ODEBUG("=> %s", instruction);
 
-            unlockFile(localFilePath);
+            C_ALL(instruction, data);
+            recvData(localSocket, instruction, data);   // [06|07|08] IN  : [ABORT|DENY|OK]
+            ODEBUG("<= %s", instruction);
+
+            if (strncmp(instruction, STATUS_ABORT, CMD_LEN) == 0) {
+                printf("CLIENT CHOSE TO ABORT\n");   
+            } else if (strncmp(instruction, STATUS_DENY, CMD_LEN) == 0) {
+                printf("CLIENT COULD NOT OPEN FILE\n");   
+            } else {
+                lockFile(localFilePath);
+                DEBUG("PUSH");
+                pushFile(localSocket, fd);
+
+                C_ALL(instruction, data);
+                recvData(localSocket, instruction, data);   // 09 IN  : DONE
+                ODEBUG("<= %s", instruction);
+                unlockFile(localFilePath);
+            }
         }
-        
+
+        close(fd);
     }
+
+    C_ALL(instruction, data); memset(localFilePath, 0, FILENAME_MAX + 1);
+    free(instruction); free(data); free(localFilePath);
 }
