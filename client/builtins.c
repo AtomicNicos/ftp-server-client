@@ -35,24 +35,36 @@ char* list(int localSocket, int *_argc, char *argv0, char **_argv) {
 
     unsigned char *instruction = malloc(INSTR_SIZE + 1); unsigned char *data = malloc(BUFFER_SIZE + 1);
     C_ALL(instruction, data);
+
     snprintf(instruction, INSTR_SIZE + 1, "%s", CMD_LIST);
     sendData(localSocket, instruction, data, 0);   // 00 OUT : LIST
-    DEBUG("=> LIST\n");
-    usleep(1);
+    DEBUG("=> LIST");
+    
+    C_ALL(instruction, data);
     recvData(localSocket, instruction, data);   // 01 IN  : FILES <num>
-    ODEBUG("<= %s\n", instruction);
+    ODEBUG("<= %s", instruction);
 
     long fCount = strtol(instruction + CMD_LEN + 1, NULL, 0);
-    printf("%s %lu\n", instruction, fCount);
+
+    C_ALL(instruction, data);
+    snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_OK);
+    sendData(localSocket, instruction, data, 0);   // 02 OUT : OK
+    DEBUG("=> OK");
 
     printf("[%ld] Remote Files\n", fCount);
     for (long i = 0; i < fCount; i++) {
         C_ALL(instruction, data);
         recvData(localSocket, instruction, data);   // 02 IN  : FILE <name>
-        sendData(localSocket, STATUS_OK, "", 0);    // 03 OUT : OK
+        ODEBUG("<= %s", instruction);
         printf("  [%ld] => %s\n", i + 1, data);
+
+        C_ALL(instruction, data);
+        snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_OK);
+        sendData(localSocket, instruction, data, 0);
+        DEBUG("=> OK");
     }
-    
+
+    C_ALL(instruction, data);
     free(instruction); free(data);
     return "builtin list";
 }
@@ -70,24 +82,27 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
     ull fileSize = getLength(localFilePath);
 
     if (fileSize > 0)
-        printf("FILE SIZE IS %lld BYTES\n", fileSize);
+        printf("Transfer of %s (%lld bytes)\n", _argv[1], fileSize);
     else 
         (WARN("-upload: specified file does not exist.", "ul <file> [<file new name>]"));
 
     snprintf(instruction, INSTR_SIZE + 1, "%s 0x%.17llx", CMD_UPLOAD, fileSize);
     sendData(localSocket, instruction, data, 0);    // 00 OUT : UPLOAD
+    DEBUG("=> UPLOAD");
+
     C_ALL(instruction, data);
     recvData(localSocket, instruction, data);       // 00.1 IN : OK
+    ODEBUG("<= %s", instruction);
 
     C_ALL(instruction, data);
     snprintf(instruction, INSTR_SIZE + 1, "%s", CMD_NAME);
     snprintf(data, BUFFER_SIZE + 1, "%s", (renameMode == 1) ? _argv[2] : _argv[1]);
     sendData(localSocket, instruction, data, strlen((renameMode == 1) ? _argv[2] : _argv[1])); // 01 OUT : NAME <value>
-    DEBUG("=> NAME\n");
+    DEBUG("=> NAME");
 
     C_ALL(instruction, data);
     recvData(localSocket, instruction, data);       // 02|05|06 IN  : [OVERWRITE|ERROR|OK]
-    ODEBUG("<= %s\n", instruction);
+    ODEBUG("<= %s", instruction);
 
     if (strncmp(instruction, CMD_OVERWRITE, CMD_LEN) == 0) {
         printf("`%s` already exists on the server. OVERWRITE ? [Y/n] > ", (renameMode == 1) ? _argv[2] : _argv[1]);
@@ -109,27 +124,27 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
             printf("Client chose to ABORT.\n");
             snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_ABORT);
             sendData(localSocket, instruction, data, 0);    // 03 OUT : ABORT
-            DEBUG("=> ABORT\n");
+            DEBUG("=> ABORT");
             free(localFilePath); free(instruction); free(data);
             return "NO OVERWRITE EXIT";
         } else {
             snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_OK);
             sendData(localSocket, instruction, data, 0);      // 04 OUT : OK
-            DEBUG("=> OK\n");
+            DEBUG("=> OK");
         }
 
         C_ALL(instruction, data);
         recvData(localSocket, instruction, data);   // 05|06|10 IN  : [ERROR|OK|RESSOURCE_IN_USE]
-        ODEBUG("<= %s\n", instruction);
+        ODEBUG("<= %s", instruction);
     }
     
     // Server notifies that the file is locked.
     if (strncmp(instruction, STATUS_RESINUSE, CMD_LEN) == 0) { 
-        printf("The resource is currently unavailable (java.io.ConcurrentModificationException)\n");
+        printColorized("The file is currently unavailable (java.io.ConcurrentModificationException)", 32, 40, 0, 1);
         free (localFilePath); free(instruction); free(data);
         return "RIU";
     } else if (strncmp(instruction, STATUS_ERR, CMD_LEN) == 0) { // Server notifies that the file is locked.
-        printf("Could not create the file server side.\n");
+        printColorized("Could not create the file server side.", 32, 40, 0, 1);
         free (localFilePath); free(instruction); free(data);
         return "ERR";
     } else if (strncmp(instruction, STATUS_OK, CMD_LEN) == 0) {
@@ -139,20 +154,22 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
             perror("FOPEN");
             snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_ERR);
             sendData(localSocket, instruction, data, 0); // 07 OUT : ERROR
-            DEBUG("=> ERROR\n");
+            DEBUG("=> ERROR");
         } else {
             snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_OK);
             sendData(localSocket, instruction, data, 0);  // 08 OUT : OK
-            DEBUG("=> OK\n");
+            DEBUG("=> OK");
 
             recvData(localSocket, instruction, data);   // 08.1 IN  : OK
-            ODEBUG("<= %s\n", instruction);
+            ODEBUG("<= %s", instruction);
             
             pushFile(localSocket, fd);
 
             C_ALL(instruction, data);
             recvData(localSocket, instruction, data);   // 09 IN  : DONE
-            ODEBUG("<= %s\n", instruction);
+            ODEBUG("<= %s", instruction);
+            
+            printf("Transfer of %s finished.\n", _argv[1]);
         }
         close(fd);
     }
@@ -164,8 +181,47 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
 }
 
 char* download(int localSocket, int *_argc, char *argv0, char **_argv) {
-    if (*_argc < 2)
-        WARN("-download: insufficient arguments.", "dl <file> [...]");
+    if (*_argc != 2)
+        (WARN("-download: invalid amount of arguments.", "ul <file> [<file new name>]"));
+    
+    unsigned char *instruction = malloc(INSTR_SIZE + 1), *data = malloc(BUFFER_SIZE + 1);
+    char *localFilePath = malloc(FILENAME_MAX + 1);
+    memset(localFilePath, 0, FILENAME_MAX + 1);
+
+    snprintf(localFilePath, FILENAME_MAX, "%s/%s", getFilesFolder(argv0), _argv[1]);
+
+    C_ALL(instruction, data); 
+    snprintf(instruction, INSTR_SIZE + 1, "%s", CMD_DOWNLOAD);
+    sendData(localSocket, instruction, data, 0); // 00 OUT : DOWNLOAD
+    DEBUG("=> DOWNLOAD");
+
+    C_ALL(instruction, data);
+    recvData(localSocket, instruction, data);   // 00.1 IN : OK
+    ODEBUG("<= %s", instruction);
+
+    C_ALL(instruction, data);
+    snprintf(instruction, INSTR_SIZE + 1, "%s", CMD_NAME);
+    snprintf(data, BUFFER_SIZE + 1, "%s", _argv[1]);
+    sendData(localSocket, instruction, data, strlen(_argv[1])); // 01 OUT : NAME <value>
+    DEBUG("=> NAME");
+
+    C_ALL(instruction, data);
+    recvData(localSocket, instruction, data);       // 02|03|04 IN  : [ERROR|RIU|OK <size>]
+    ODEBUG("<= %s", instruction);
+
+    if (strncmp(instruction, STATUS_RESINUSE, CMD_LEN) == 0) {
+        printColorized("The file is currently unavailable.", 32, 40, 0, 1);
+        return "RIU";
+    } else if (strncmp(instruction, STATUS_ERR, CMD_LEN) == 0) {
+        printColorized("The file does not exist on the server.", 32, 40, 0, 1);
+        return "ERR";
+    } else {
+        // Check file exists, prompt override / abort
+        ull fileSize = strtoull(instruction + CMD_LEN + 1, NULL, 0);
+
+        printf("FSIZE = %llu\n", fileSize);
+    }    
+    
     return "builtin download";
 }
 

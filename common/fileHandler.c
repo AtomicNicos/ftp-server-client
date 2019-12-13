@@ -11,6 +11,9 @@
 #include "utils.h"
 #include "fileHandler.h"
 
+/**
+ * TODO
+ */
 int isValidPath(const char *path) {
     struct stat* statBuffer = malloc(sizeof(struct stat));
     memset(statBuffer, 0, sizeof(struct stat));
@@ -18,9 +21,12 @@ int isValidPath(const char *path) {
     __mode_t mode = statBuffer->st_mode;
     
     free(statBuffer);
-    return (status == 0 && (S_ISDIR(mode) || S_ISLNK(mode) || S_ISREG(mode))) ? 1 : 0;
+    return (status == 0 && S_ISREG(mode)) ? 1 : 0;
 }
 
+/**
+ * TODO
+ */
 ull getLength(const char *path) {
     if (isValidPath(path) == 1) {
         ull length;
@@ -67,40 +73,47 @@ void getFiles(const char *path, char *files[FILENAME_MAX + 1], int *numberOfFile
     free(currentDir); free(statBuffer);
 }
 
-
+/**
+ * TODO
+ */
 int lockFile(const char *path) {
     char *lockFilePath = malloc(FILENAME_MAX + 1);
     snprintf(lockFilePath, FILENAME_MAX + 1, "%s.lock", path);    
-    FILE *fd = fopen(lockFilePath, "w");
     
+    FILE *fd = fopen(lockFilePath, "w"); 
     fprintf(fd, "%s", "lock");
     fclose(fd);
 
-    printf("ADDING LOCK FILE [%s]\n", lockFilePath);
+    ODEBUG("ADDING LOCK FILE [%s]\n", lockFilePath);
     free(lockFilePath);
     return 1;
 }
 
+/**
+ * TODO
+ */
 int unlockFile(const char *path) {
     int status = -1;
     if (isLocked(path) == 1) {
         char *lockFilePath = malloc(FILENAME_MAX + 1);
         snprintf(lockFilePath, FILENAME_MAX + 1, "%s.lock", path); 
         status = remove(lockFilePath);
-        printf("REMOVING LOCK FILE [%s]\n", lockFilePath);
+        ODEBUG("REMOVING LOCK FILE [%s]\n", lockFilePath);
         free(lockFilePath);
     }
 
     return (status == 0) ? 1 : 0;
 }
 
+/**
+ * TODO
+ */
 int isLocked(const char *path) {
     char *lockFilePath = malloc(FILENAME_MAX + 1);
     snprintf(lockFilePath, FILENAME_MAX + 1, "%s.lock", path);    
     int len = getLength(lockFilePath);
 
-
-    printf("VERIFYING LOCK FILE STATUS [%s] => %s\n", lockFilePath, (len > 0) ? "ACTIVE" : "INACTIVE");
+    ODEBUG("VERIFYING LOCK FILE STATUS [%s] => %s\n", lockFilePath, (len > 0) ? "ACTIVE" : "INACTIVE");
     
     free(lockFilePath);
     return (len > 0) ? 1 : 0;

@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
     memset(&serv_addr, 0, sizeof(serv_addr));
     int local_socket;
 
-    printf("START\n");
+    DEBUG("START");
 
     if ((local_socket = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         FAIL_SUCCESFULLY("Socket could not be created\n");
@@ -81,7 +81,7 @@ int main(int argc, char **argv) {
         int *_argc = malloc(sizeof(int));
         char **_argv = splitLine(line, _argc, SPLIT_PLACES);  // Generate an asymmetrical component holder of vacuous contents or some such bs.
         
-        //printf("ARGC %i\n", *_argc);
+        ODEBUG("Arguments %i", *_argc);
 
         if (*_argc > 0 && clientShouldRun == 1) {
             char * builtinCommand = executeBuiltin(server, _argc, argv[0], _argv);

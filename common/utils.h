@@ -43,8 +43,8 @@ typedef signed long long sll;
 #define FAIL_SUCCESFULLY(msg)       { fprintf(stderr, msg); exit(EXIT_FAILURE); }
 #define FAIL_FSUCCESFULLY(msg, ...) { fprintf(stderr, msg, __VA_ARGS__); exit(EXIT_FAILURE); }
 
-#define DEBUG(msg) { if((DEBUGMODE) == 1) printf((msg)); }
-#define ODEBUG(fmt, ...) { if((DEBUGMODE) == 1) printf(fmt, __VA_ARGS__); }
+#define DEBUG(msg) { printColorized(("D: "), 95, 40, 0, 0); if((DEBUGMODE) == 1) printColorized((msg), 95, 40, 0, 1); }
+#define ODEBUG(fmt, ...) { printColorized(("D: "), 95, 40, 0, 0); if((DEBUGMODE) == 1) { char *msg = malloc(256); snprintf(msg, 256, fmt, __VA_ARGS__); printColorized(msg, 95, 40, 0, 1); free(msg); }}
 #define CDATA(data) { memset((data), 0, (BUFFER_SIZE + 1)); }
 #define CINST(instruction) { memset((instruction), 0, (INSTR_SIZE + 1)); }
 #define C_ALL(instruction, data) { CINST((instruction)); CDATA((data)); }

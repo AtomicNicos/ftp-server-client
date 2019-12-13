@@ -7,4 +7,6 @@ void queryList(int localSocket, char *argv0);
 
 void receiveUpload(int localSocket, char *argv0, unsigned char init[INSTR_SIZE]);
 
+void pushDownload(int localSocket, char *argv0, unsigned char init[INSTR_SIZE]);
+
 #endif

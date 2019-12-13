@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
     unsigned int client_addr_length = sizeof(client_addr);
     int sock, connectionCount = 0;
 
-    printf("START\n");
+    DEBUG("START");
 
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         FAIL_SUCCESFULLY("Socket could not be created\n");
@@ -85,10 +85,11 @@ int main(int argc, char **argv) {
         }
 
         do {
-            unsigned char *instruction = malloc(INSTR_SIZE + 1);
-            unsigned char *data = malloc(BUFFER_SIZE + 1);
+            unsigned char *instruction = malloc(INSTR_SIZE + 1), *data = malloc(BUFFER_SIZE + 1);
+            C_ALL(instruction, data);
+
             int size = recvData(client, instruction, data);
-            printf("INSTR |%s|\n", instruction);
+            ODEBUG("INSTR |%s|\n", instruction);
 
             if (size == 0 && strncmp(instruction, CMD_EXIT, CMD_LEN) == 0) {
                 printf("CLIENT EXITED\n");
@@ -96,9 +97,12 @@ int main(int argc, char **argv) {
             } else if (size == 0 && strncmp(instruction, CMD_LIST, CMD_LEN) == 0) {
                 printf("CLIENT ASK FOR LIST\n");
                 queryList(client, argv[0]);
-            }else if (size == 0 && strncmp(instruction, CMD_UPLOAD, CMD_LEN) == 0) {
+            } else if (size == 0 && strncmp(instruction, CMD_UPLOAD, CMD_LEN) == 0) {
                 printf("CLIENT WANTS TO UPLOAD\n");
                 receiveUpload(client, argv[0], instruction);
+            } else if (size == 0 && strncmp(instruction, CMD_DOWNLOAD, CMD_LEN) == 0) {
+                printf("CLIENT WANTS TO DOWNLOAD\n");
+                pushDownload(client, argv[0], instruction);
             }
 
             sleep(1);
