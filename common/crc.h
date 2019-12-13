@@ -1,3 +1,4 @@
+// TODO DOC
 #ifndef HEADER_COMMON_CRC
 #define HEADER_COMMON_CRC
 

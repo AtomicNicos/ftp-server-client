@@ -1,11 +1,12 @@
+// TODO DOC
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <dirent.h>
+#include <fcntl.h>      /** open */
+#include <sys/stat.h>   /** lstat */
+#include <dirent.h>     /** DIR*/
 #include <errno.h>
 
 #include "utils.h"

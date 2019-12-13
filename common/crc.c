@@ -1,3 +1,4 @@
+// TODO DOC
 #include "crc.h"
 
 crc  crcTable[256];
