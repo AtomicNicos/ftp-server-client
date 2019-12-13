@@ -98,7 +98,7 @@ int main(int argc, char **argv) {
                 queryList(client, argv[0]);
             }else if (size == 0 && strncmp(instruction, CMD_UPLOAD, strlen(CMD_UPLOAD)) == 0) {
                 printf("CLIENT WANTS TO UPLOAD\n");
-                getFile(client, argv[0], instruction);
+                receiveUpload(client, argv[0], instruction);
             }
 
             sleep(1);

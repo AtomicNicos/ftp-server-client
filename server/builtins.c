@@ -42,7 +42,7 @@ void queryList(int localSocket, char *argv0) {
 }
 
 
-void getFile(int localSocket, char *argv0, unsigned char init[INSTR_SIZE]) {
+void receiveUpload(int localSocket, char *argv0, unsigned char init[INSTR_SIZE]) {
     ull fileSize = strtoull(init + 3, NULL, 0);
 
     unsigned char *instruction = malloc(INSTR_SIZE + 1); unsigned char *data = malloc(BUFFER_SIZE + 1);
@@ -103,47 +103,15 @@ void getFile(int localSocket, char *argv0, unsigned char init[INSTR_SIZE]) {
             if (strncmp(instruction, STATUS_ERR, strlen(STATUS_ERR)) == 0) {
                 printf("CLIENT COULD NOT OPEN FILE, ABORT\n");
             } else { // OK.
-                ull totalRead = 0;
-                printf("NTOT vs. SIZE %lld\n", fileSize);
-                //usleep(20);
-                while (totalRead < fileSize) {
-                    memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
-                    int nRead = recvData(localSocket, instruction, data);
-                    printf("7 RCVD <%s>\n", instruction);
-                    //printf("DATA <%s>\n\n", data);
-                    totalRead += nRead;
-                    printf("READ %lld / %lld\n", totalRead, fileSize);
-                    //usleep(1);
-                    if (strncmp(instruction, STATUS_DONE, strlen(STATUS_DONE)) != 0) {
-                        char *buffer_ptr = data;
-                        ull nWritten;
-                        if (totalRead > fileSize) 
-                            nRead -= (totalRead - fileSize);
-                        
-                        do {
-                            nWritten = write(fd, data, nRead);
-                            // nWritten = fwrite(buffer_ptr, 1, nRead, fd);
-                            if (nWritten >= 0) {
-                                nRead -= nWritten;
-                                buffer_ptr += nWritten;
-                            } else if (errno != EINTR)
-                                return;
-                            
-                        } while (nRead > 0);
-                        
-                        memset(instruction, 0, INSTR_SIZE + 1);
-                        snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_OK);
-                        sendData(localSocket, instruction, "", 0);
-                        printf("8 SENT <%s>\n", instruction);
-                    }
-                }
+                pullFile(localSocket, fd, fileSize);
             }
         }
 
         sleep(1);
         memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
-        recvData(localSocket, instruction, data);
-        printf("9 RCVD <%s>\n", instruction);
+        snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_DONE);
+        sendData(localSocket, instruction, data, 0);
+        printf("9 SEND <%s>\n", instruction);
 
         close(fd);
         // fclose(fd);

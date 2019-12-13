@@ -146,29 +146,11 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
             sendData(localSocket, instruction, data, 0);
             printf("6 SENT <%s>\n", instruction);
         } else {
-            int nRead = 0;
-            ull totalRead = 0;
-            while (totalRead < fileSize) {  // While bytes can be read from the src file.
-                memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1); 
-                
-                snprintf(instruction, INSTR_SIZE + 1, "%s", CMD_BROADCAST);
-                nRead = read(fd, data, BUFFER_SIZE);
-                // nRead = fread(data, 1, BUFFER_SIZE, fd);
-                totalRead += (ull) nRead;
-                
-                printf("WROTE %lld / %lld\n", totalRead, fileSize);
-                // usleep(5);
-                sendData(localSocket, instruction, data, nRead);
-                printf("8 SENT <%s>\n", instruction);
-                // usleep(1);
-                recvData(localSocket, instruction, data);
-                printf("9 RECV <%s>\n", instruction);
-            }
+            pushFile(localSocket, fd);
 
             memset(instruction, 0, INSTR_SIZE + 1); memset(data, 0, BUFFER_SIZE + 1);
-            snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_DONE);
-            sendData(localSocket, instruction, data, 0);
-            printf("10 SENT <%s>\n", instruction);
+            recvData(localSocket, instruction, data);
+            printf("10 RECV <%s>\n", instruction);
         }
         close(fd);
         // fclose(fd);

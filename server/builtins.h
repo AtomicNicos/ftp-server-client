@@ -5,6 +5,6 @@
 
 void queryList(int localSocket, char *argv0);
 
-void getFile(int localSocket, char *argv0, unsigned char init[INSTR_SIZE]);
+void receiveUpload(int localSocket, char *argv0, unsigned char init[INSTR_SIZE]);
 
 #endif

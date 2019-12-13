@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include <sys/socket.h>
 
@@ -135,4 +136,59 @@ char* getFilesFolder(char *argv0) {
     snprintf(dirPath, FILENAME_MAX + 1, "%s%s/files", getenv("PWD"), execPath);
     free(execPath);
     return dirPath;
+}
+
+/** @author Guillaume Chanel, Prof. at UNIGE, gives a C course where the RDRW part of this code is provided in the public domain.
+ * @brief Send a file over the wire.
+ * @param localSocket
+ * @param fd
+ * @returns
+ */
+int pushFile(int localSocket, int fd) {
+    unsigned char data[BUFFER_SIZE];
+    sll bytesRead;
+
+    while (bytesRead = read(fd, data, sizeof data), bytesRead > 0) {
+        char *data_ptr = data;
+        sll nWritten; 
+        do {
+            nWritten = write(localSocket, data_ptr, bytesRead);
+            if (nWritten >= 0) {
+                bytesRead -= nWritten;
+                data_ptr += nWritten;
+            } else if (errno != EINTR) {
+                perror("WRITE TO SOCKET");
+                return -1;
+            }
+        } while (bytesRead > 0);
+    }
+    return bytesRead;
+}
+
+int pullFile(int localSocket, int fd, ull fileSize) {
+    unsigned char data[BUFFER_SIZE];
+    ull nRead, amountRead = 0;
+
+    while (nRead = read(localSocket, data, sizeof data), nRead > 0) {
+        amountRead += nRead;
+        char *data_ptr = data;
+        ull nWritten; 
+
+        if (amountRead >= fileSize)
+            nRead -= (amountRead - fileSize);
+        do {
+            nWritten = write(fd, data_ptr, nRead);
+            if (nWritten >= 0) {
+                nRead -= nWritten;
+                data_ptr += nWritten;
+            } else if (errno != EINTR) {
+                perror("READ FROM SOCKET");
+                return -1;
+            }
+        } while (nRead > 0);
+
+        if (amountRead >= fileSize) 
+            break;
+    }
+    return nRead;
 }
