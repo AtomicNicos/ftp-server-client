@@ -1,6 +1,5 @@
-// TODO DOC
-
 #define _GNU_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -34,6 +33,10 @@ void signalHandler(int signo) {
         printf("WTF\n");
 }
 
+/** @brief Program ingress point.
+ * @param argc The size of the argument vector.
+ * @param argv The argument vector.
+*/
 int main(int argc, char **argv) {
     // SETUP
     crcInit();
@@ -93,26 +96,27 @@ int main(int argc, char **argv) {
             int size = recvData(client, instruction, data);
             ODEBUG("INSTR |%s|\n", instruction);
 
+            // HANDLE CLIENT QUERIES
             if (size == 0 && strncmp(instruction, CMD_EXIT, CMD_LEN) == 0) {
-                printf("CLIENT EXITED\n");
+                printColorized("The client exited.", 92, 40, 0, 1);
                 clientConnected = 0;
             } else if (size == 0 && strncmp(instruction, CMD_LIST, CMD_LEN) == 0) {
-                printf("CLIENT ASK FOR LIST\n");
+                printColorized("The client asked for the file list.", 92, 40, 0, 1);
                 queryList(client, argv[0]);
             } else if (size == 0 && strncmp(instruction, CMD_UPLOAD, CMD_LEN) == 0) {
-                printf("CLIENT WANTS TO UPLOAD\n");
+                printColorized("The client wants to upload a file.", 92, 40, 0, 1);
                 receiveUpload(client, argv[0], instruction);
             } else if (size == 0 && strncmp(instruction, CMD_DOWNLOAD, CMD_LEN) == 0) {
+                printColorized("The client wants to download a file.", 92, 40, 0, 1);
                 printf("CLIENT WANTS TO DOWNLOAD\n");
                 pushDownload(client, argv[0], instruction);
             } else if (size == 0 && strncmp(instruction, CMD_DELETE, CMD_LEN) == 0) {
-                printf("CLIENT WANTS TO DELETE\n");
+                printColorized("The client wants to delete a file.", 92, 40, 0, 1);
                 deleteFile(client, argv[0], instruction);
             }
 
             sleep(1);
-            free(instruction);
-            free(data);
+            free(instruction); free(data);
         } while (clientConnected == 1);
         close(client);
     } while(programShouldRun == 1);

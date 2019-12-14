@@ -1,4 +1,3 @@
-// TODO DOC
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -12,8 +11,8 @@
 #include "utils.h"
 #include "fileHandler.h"
 
-/**
- * TODO
+/** @brief Checks that the file at PATH exists and is a file.
+ * @param path The file's path on the machine.
  */
 int isValidPath(const char *path) {
     struct stat* statBuffer = malloc(sizeof(struct stat));
@@ -25,8 +24,8 @@ int isValidPath(const char *path) {
     return (status == 0 && S_ISREG(mode)) ? 1 : 0;
 }
 
-/**
- * TODO
+/** @brief Gets the length of the path.
+ * @param path The file's path on the machine.
  */
 ull getLength(const char *path) {
     if (isValidPath(path) == 1) {
@@ -51,9 +50,11 @@ void getFiles(const char *path, char *files[FILENAME_MAX + 1], int *numberOfFile
     struct dirent *currentDir;
     struct stat *statBuffer = malloc(sizeof(struct stat));
 
-    if (lstat(path, statBuffer) == 0 && S_ISDIR(statBuffer->st_mode)) { // If it's a dir, then it might have children, otherwise... nope.
+    // If it's a dir, then it might have children, otherwise... nope.
+    if (lstat(path, statBuffer) == 0 && S_ISDIR(statBuffer->st_mode)) {
         DIR *folder = opendir(path); 
-        if (access(path, F_OK) != -1) { // If the program can access the object at the end of the path.
+        // If the program can access the object at the end of the path.
+        if (access(path, F_OK) != -1) {
             if (folder) // Check innulability (yes I just invented a word)
                 while ((currentDir = readdir(folder))) {    // If children can be read.
                     len = strlen(currentDir->d_name);
@@ -74,8 +75,8 @@ void getFiles(const char *path, char *files[FILENAME_MAX + 1], int *numberOfFile
     free(currentDir); free(statBuffer);
 }
 
-/**
- * TODO
+/** @brief Creates a lock file (path.lock)
+ * @param path The path of the file to be locked.
  */
 int lockFile(const char *path) {
     char *lockFilePath = malloc(FILENAME_MAX + 1);
@@ -90,8 +91,8 @@ int lockFile(const char *path) {
     return 1;
 }
 
-/**
- * TODO
+/** @brief Removes the lock file.
+ * @param path The path of the file to be unlocked.
  */
 int unlockFile(const char *path) {
     int status = -1;
@@ -102,12 +103,11 @@ int unlockFile(const char *path) {
         ODEBUG("REMOVING LOCK FILE [%s]\n", lockFilePath);
         free(lockFilePath);
     }
-
     return (status == 0) ? 1 : 0;
 }
 
-/**
- * TODO
+/** @brief Check if the lock file exists.
+ * @param path The path of the file to be unlocked.
  */
 int isLocked(const char *path) {
     char *lockFilePath = malloc(FILENAME_MAX + 1);

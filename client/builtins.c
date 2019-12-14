@@ -42,8 +42,7 @@ char* list(int localSocket, int *_argc, char *argv0, char **_argv) {
     C_ALL(instruction, data);
 
     // 00 OUT : LIST -> Query the server for the list.
-    snprintf(instruction, INSTR_SIZE + 1, "%s", CMD_LIST);
-    sendData(localSocket, instruction, data, 0);
+    sendData(localSocket, "", 0, "%s", CMD_LIST);
     DEBUG("=> LIST");
     
     // 01 IN  : FILES <num> -> Get the <num> of files that the server will pipe over.
@@ -55,8 +54,7 @@ char* list(int localSocket, int *_argc, char *argv0, char **_argv) {
 
     // 02 OUT : OK -> Confirm reception of the data.
     C_ALL(instruction, data);
-    snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_OK);
-    sendData(localSocket, instruction, data, 0);
+    sendData(localSocket, "", 0, "%s", STATUS_OK);
     DEBUG("=> OK");
 
     printf("[%ld] Remote Files\n", fCount);
@@ -69,8 +67,7 @@ char* list(int localSocket, int *_argc, char *argv0, char **_argv) {
 
         // 04 OUT : OK -> Confirm reception
         C_ALL(instruction, data);
-        snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_OK);
-        sendData(localSocket, instruction, data, 0);
+        sendData(localSocket, "", 0, "%s", STATUS_OK);
         DEBUG("=> OK");
     }
 
@@ -104,8 +101,7 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
         (WARN("-upload: specified file does not exist.", "ul <file> [<file new name>]"));
 
     // 00 OUT : UPLOAD -> Inform the server the client wishes to upload a file.
-    snprintf(instruction, INSTR_SIZE + 1, "%s 0x%.17llx", CMD_UPLOAD, fileSize);
-    sendData(localSocket, instruction, data, 0);
+    sendData(localSocket, "", 0, "%s 0x%.17llx", CMD_UPLOAD, fileSize);
     DEBUG("=> UPLOAD");
     
     // 00.1 IN : OK -> Receive confirmation from the server.
@@ -115,9 +111,9 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
 
     // 01 OUT : NAME <value> -> Send the name of the file to the server.s
     C_ALL(instruction, data);
-    snprintf(instruction, INSTR_SIZE + 1, "%s", CMD_NAME);
     snprintf(data, BUFFER_SIZE + 1, "%s", (renameMode == 1) ? _argv[2] : _argv[1]);
-    sendData(localSocket, instruction, data, strlen((renameMode == 1) ? _argv[2] : _argv[1]));
+    int len = strlen((renameMode == 1) ? _argv[2] : _argv[1]);
+    sendData(localSocket, data, len, "%s", CMD_NAME);
     DEBUG("=> NAME");
 
     // 02|05|06 IN  : [OVERWRITE|ERROR|OK] -> Get the ongoing status : Does the file exist (ie. query user on overwrite), or is it unopenable.
@@ -145,8 +141,7 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
         if (change == 0) {
             // 03 OUT : ABORT -> Inform the server to cease procedure.
             printf("Client chose to ABORT.\n");
-            snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_ABORT);
-            sendData(localSocket, instruction, data, 0);
+            sendData(localSocket, "", 0, "%s", STATUS_ABORT);
             DEBUG("=> ABORT");
             
             C_ALL(instruction, data);
@@ -154,8 +149,7 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
             return "NO OVERWRITE EXIT"; // Terminate this execution.
         } else {
             // 04 OUT : OK -> Inform the user that the file will be overwritten.
-            snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_OK);
-            sendData(localSocket, instruction, data, 0);
+            sendData(localSocket, "", 0, "%s", STATUS_OK);
             DEBUG("=> OK");
         }
 
@@ -184,15 +178,13 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
             else errno = EINVAL;
 
             perror("FOPEN");
-            snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_ERR);
-            sendData(localSocket, instruction, data, 0);
+            sendData(localSocket, "", 0, "%s", STATUS_ERR);
             DEBUG("=> ERROR");
         } else {
             lockFile(localFilePath);
 
              // 08 OUT : OK -> Tell the server to proceed.
-            snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_OK);
-            sendData(localSocket, instruction, data, 0);
+            sendData(localSocket, "", 0, "%s", STATUS_OK);
             DEBUG("=> OK");
 
             // 08.1 IN  : OK -> Get confirmation of proceeding.
@@ -228,15 +220,14 @@ char* download(int localSocket, int *_argc, char *argv0, char **_argv) {
         (WARN("-download: invalid amount of arguments.", "ul <file> [<file new name>]"));
     
     unsigned char *instruction = malloc(INSTR_SIZE + 1), *data = malloc(BUFFER_SIZE + 1);
+    C_ALL(instruction, data); 
     
     char *localFilePath = malloc(FILENAME_MAX + 1);
     memset(localFilePath, 0, FILENAME_MAX + 1);
     snprintf(localFilePath, FILENAME_MAX, "%s/%s", getFilesFolder(argv0), _argv[1]);
 
     // 00 OUT : DOWNLOAD -> Inform the server that the client wishes to download a file.
-    C_ALL(instruction, data); 
-    snprintf(instruction, INSTR_SIZE + 1, "%s", CMD_DOWNLOAD);
-    sendData(localSocket, instruction, data, 0);
+    sendData(localSocket, "", 0, "%s", CMD_DOWNLOAD);
     DEBUG("=> DOWNLOAD");
 
     // 00.1 IN : OK -> Get confirmation from the server.
@@ -246,9 +237,8 @@ char* download(int localSocket, int *_argc, char *argv0, char **_argv) {
 
     // 01 OUT : NAME <value> -> Transmit the filename
     C_ALL(instruction, data);
-    snprintf(instruction, INSTR_SIZE + 1, "%s", CMD_NAME);
     snprintf(data, BUFFER_SIZE + 1, "%s", _argv[1]);
-    sendData(localSocket, instruction, data, strlen(_argv[1]));
+    sendData(localSocket, data, strlen(_argv[1]), "%s", CMD_NAME);
     DEBUG("=> NAME");
 
     // 02|03|04|05 IN  : [ERROR|RESOURCE_IN_SOURCE|DENY|OK <size>] -> Either get a blocking status, or an OK with the filesize.
@@ -289,8 +279,7 @@ char* download(int localSocket, int *_argc, char *argv0, char **_argv) {
             if (change == 0) {
                 // 06 OUT : ABORT -> Inform the server that the client chose to abort.
                 printf("Client chose to ABORT.\n");
-                snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_ABORT);
-                sendData(localSocket, instruction, data, 0);
+                sendData(localSocket, "", 0, "%s", STATUS_ABORT);
                 DEBUG("=> ABORT");
 
                 C_ALL(instruction, data);
@@ -306,8 +295,7 @@ char* download(int localSocket, int *_argc, char *argv0, char **_argv) {
         if (fd == -1 || isLocked(localFilePath) == 1) {
             // 07 OUT : DENY -> Inform the server that the client cannot edit his copy.
             printf("File Innacessible.\n");
-            snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_DENY);
-            sendData(localSocket, instruction, data, 0);
+            sendData(localSocket, "", 0, "%s", STATUS_DENY);
             DEBUG("=> DENY");
 
             C_ALL(instruction, data);
@@ -316,17 +304,15 @@ char* download(int localSocket, int *_argc, char *argv0, char **_argv) {
         } else {
             lockFile(localFilePath);
             
-            // 08 OUT : OK -> Send readiness confirmation to the server
-            snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_OK);
-            sendData(localSocket, instruction, data, 0);
+            // 08 OUT : OK -> Send readiness confirmation to the server.
+            sendData(localSocket, "", 0, "%s", STATUS_OK);
             DEBUG("=> OK");
             
             pullFile(localSocket, fd, fileSize);
 
             // 09 OUT : DONE -> Inform the server the upload process is done.
             C_ALL(instruction, data);
-            snprintf(instruction, INSTR_SIZE + 1, "%s", STATUS_DONE);
-            sendData(localSocket, instruction, data, 0);
+            sendData(localSocket, "", 0, "%s", STATUS_DONE);
             DEBUG("=> DONE");
 
             unlockFile(localFilePath);
@@ -371,20 +357,17 @@ char *deleteFile(int localSocket, int *_argc, char *argv0, char **_argv) {
         C_ALL(instruction, data);
 
         // 00 OUT : DELETE -> Inform the server that the client wants to delete a file.
-        snprintf(instruction, INSTR_SIZE + 1, "%s", CMD_DELETE);
-        sendData(localSocket, instruction, data, 0);
+        sendData(localSocket, "", 0, "%s", CMD_DELETE);
         DEBUG("=> DELETE");
 
         // 00.1 IN  : OK -> Receive servers confirmation.
-        C_ALL(instruction, data);
         recvData(localSocket, instruction, data);               
         ODEBUG("<= %s", instruction);
 
         // 01 OUT : NAME <value> -> Send the filename to the server.
         C_ALL(instruction, data);
-        snprintf(instruction, INSTR_SIZE + 1, "%s", CMD_NAME);
         snprintf(data, BUFFER_SIZE + 1, "%s", _argv[2]);
-        sendData(localSocket, instruction, data, strlen(data));
+        sendData(localSocket, data, strlen(data), "%s", CMD_NAME);
         DEBUG("=> NAME");
 
         // [02|03|04|05] IN  : [ERROR|RIU|DENY|OK] -> Get status clauses or confirmation.

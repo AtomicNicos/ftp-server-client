@@ -1,5 +1,3 @@
-// TODO DOC
-
 #define _GNU_SOURCE
 
 #include <stdio.h>
@@ -19,6 +17,7 @@
 #include "lineReader.h"
 #include "builtins.h"
 
+/* Used as globals for signal handling. */
 int server, clientShouldRun = 1;
 
 /** @brief Handles signals.... 
@@ -26,16 +25,21 @@ int server, clientShouldRun = 1;
  */
 void signalHandler(int signo) {
     if (signo == SIGINT || signo == SIGTERM || signo == SIGQUIT || signo == SIGHUP) {
-        sendData(server, CMD_EXIT, "", 0);
+        sendData(server, "", 0, "%s", CMD_EXIT);
         clientShouldRun = 0;
     } else
         printf("WTF\n");
 }
 
+/** @brief Program ingress point.
+ * @param argc The size of the argument vector.
+ * @param argv The argument vector.
+*/
 int main(int argc, char **argv) {
-
+    // Hard exit point
     if (argc != 1)
         FAIL_SUCCESFULLY("TOO MANY parameters");
+    // Initialize the CRC lookup map.
     crcInit();
 
     struct sockaddr_in serv_addr;
@@ -47,9 +51,23 @@ int main(int argc, char **argv) {
     if ((local_socket = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         FAIL_SUCCESFULLY("Socket could not be created\n");
 
-    char *serverAddress = SERVER_IP;//getLine();
+    // Get the server address from the client.
+    printColorized("SERVER IP $> ", 94, 40, 0, 0);
+    char *serverAddress = getLine();
+    ODEBUG("SERVER ADDRESS => %s", serverAddress);
+
+    if (isValidIPV4(serverAddress) == 0)
+        FAIL_SUCCESFULLY("INVALID SERVER IP\n")
+
     if (inet_pton(AF_INET, serverAddress, &(serv_addr.sin_addr)) < 0)    // Setup socket connection parameters.
         FAIL_SUCCESFULLY("INET_ERROR\n");
+    
+    printColorized("PORT $> ", 33, 40, 0, 0);
+    char *_port = getLine();
+    int port = isNumeric(_port);
+
+    if (port == -1)
+        FAIL_SUCCESFULLY("INVALID PORT SPECIFIED\n");
     
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(PORT);
@@ -90,7 +108,7 @@ int main(int argc, char **argv) {
             if (builtinCommand == NULL) {        // Not a builtin
                 if (*_argc == 1 && strncmp("exit", _argv[0], 4) == 0) {
                     if (strlen(_argv[0]) == 4) {
-                        sendData(server, CMD_EXIT, "", 0);
+                        sendData(server, "", 0, "%s", CMD_EXIT);
                         printf("Bye\n");    // Leave.
                         clientShouldRun = 0;
                     } else 
