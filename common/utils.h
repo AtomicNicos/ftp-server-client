@@ -2,14 +2,12 @@
 #define HEADER_COMMON_UTILS
 
 #include <stdio.h> /*   fprintf     */
+#include <unistd.h> /* getpid() */
 
 typedef unsigned long long ull;
 typedef signed long long sll;
 
 #define DEBUGMODE 1
-
-#define PORT 4242
-#define BACKLOG 10
 #define EXIT_FAILURE 1
 #define SERVER_IP "127.0.0.1"
 
@@ -47,10 +45,10 @@ typedef signed long long sll;
 #define FAIL_SUCCESFULLY(msg)       { printColorized(msg, 31, 40, 0, 1); exit(EXIT_FAILURE); }
 
 /** Prints a debug message. */
-#define DEBUG(msg) { printColorized(("D: "), 95, 40, 0, 0); if((DEBUGMODE) == 1) printColorized((msg), 95, 40, 0, 1); }
+#define DEBUG(msg) { if((DEBUGMODE) == 1) (ODEBUG("%s", msg)); }
 
 /** Prints a formatted debug message. */
-#define ODEBUG(fmt, ...) { printColorized(("D: "), 95, 40, 0, 0); if((DEBUGMODE) == 1) { char *msg = malloc(256); snprintf(msg, 256, fmt, __VA_ARGS__); printColorized(msg, 95, 40, 0, 1); free(msg); }}
+#define ODEBUG(fmt, ...) { if((DEBUGMODE) == 1) { printColorized(("D: "), 95, 40, 0, 0); char *pid = malloc(10); printf("\033[38;2;255;0;0m[%d]\033[0m", getpid()); printf("\n"); char *msg = malloc(256); snprintf(msg, 256, fmt, __VA_ARGS__); printColorized(msg, 95, 40, 0, 1); free(msg); }}
 
 /** Clears the data buffer. */
 #define CDATA(data) { memset((data), 0, (BUFFER_SIZE + 1)); }

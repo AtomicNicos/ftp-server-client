@@ -189,7 +189,9 @@ char* getFilesFolder(char *argv0) {
     char *dirPath = malloc(FILENAME_MAX + 1);
     char *execPath = malloc(FILENAME_MAX + 1);
 
+    printf("ARGV0: %s\n", argv0);
     snprintf(execPath, FILENAME_MAX + 1, "%s", argv0 + 1);
+    printf("EXEC PATH: %s\n", execPath);
 
     char *slash = strrchr(execPath, '/');
     if (slash)
@@ -245,7 +247,7 @@ int pullFile(int localSocket, int fd, ull fileSize) {
         char *data_ptr = data;
         ull nWritten; 
 
-        if (amountRead >= fileSize)
+        if (amountRead >= fileSize) // Avoid overflow.
             nRead -= (amountRead - fileSize);
         do {
             nWritten = write(fd, data_ptr, nRead);

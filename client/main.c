@@ -70,7 +70,7 @@ int main(int argc, char **argv) {
         FAIL_SUCCESFULLY("INVALID PORT SPECIFIED\n");
     
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(PORT);
+    serv_addr.sin_port = htons(port);
 
 	if ((server = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         FAIL_SUCCESFULLY("CANNOT CREATE SOCKET\n");
@@ -117,7 +117,7 @@ int main(int argc, char **argv) {
                     fprintf(stderr, "\nCommand '%s' not found.\n\n", _argv[0]);
                 }
             } else if (strlen(builtinCommand) == 2 && strncmp(builtinCommand, "NO", 2) == 0) {
-                printf("ERROR %s\n", _argv[0]);
+                ODEBUG("ERROR %s", _argv[0]);
             }
         }
             

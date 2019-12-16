@@ -1,5 +1,4 @@
 /** @author Nicolas Boeckh */
-
 #define _GNU_SOURCE
 
 #include <stdio.h>
@@ -25,6 +24,7 @@ void queryList(int localSocket, char *argv0) {
     C_ALL(instruction, data);
 
     // Get the files stored locally.
+    printf("FILES FOLDER %s\n", getFilesFolder(argv0));
     getFiles(getFilesFolder(argv0), files, fileCount);
 
     // 01 OUT : FILES <num>
@@ -36,7 +36,7 @@ void queryList(int localSocket, char *argv0) {
     ODEBUG("<= %s\n", instruction);
 
     for (int i = 0; i < *fileCount; i++) {
-        ODEBUG("%i %s", i, files[i]);
+        ODEBUG("OBJECT %i: %s", i, files[i]);
         usleep(1);
         // 03 OUT : FILE <name>
         C_ALL(instruction, data); 

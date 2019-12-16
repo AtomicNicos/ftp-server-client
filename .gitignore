@@ -4,7 +4,6 @@
 
 # Project Artefacts
 *.o
-*.txt
 *.tar
 *.zip
 *.lock
@@ -12,6 +11,4 @@
 # Executable
 ftp-client
 ftp-server
-
-# Random
-test.py
+ftp-lserver

@@ -13,13 +13,20 @@ SOURCES_SERVER=$(SOURCES_COMMON) $(wildcard server/*.c)
 TARGET_SERVER=ftp-server
 OBJECTS_SERVER=$(SOURCES_SERVER:.c=.o)
 
-all: $(TARGET_CLIENT) $(TARGET_SERVER)
+SOURCES_LSERVER=$(SOURCES_COMMON) $(wildcard light_server/*.c)
+TARGET_LSERVER=ftp-lserver
+OBJECTS_LSERVER=$(SOURCES_LSERVER:.c=.o)
+
+all: $(TARGET_CLIENT) $(TARGET_SERVER) $(TARGET_LSERVER)
 
 $(TARGET_CLIENT): $(OBJECTS_CLIENT)
 		$(CC) -o client/$@ $^ $(LDFLAGS)
 
 $(TARGET_SERVER): $(OBJECTS_SERVER)
 		$(CC) -o server/$@ $^ $(LDFLAGS)
+
+$(TARGET_LSERVER): $(OBJECTS_LSERVER)
+		$(CC) -o light_server/$@ $^ $(LDFLAGS)
 
 */%.o: %.c %.h
 		$(CC) $(CCFLAGS) -c $<
@@ -28,7 +35,7 @@ $(TARGET_SERVER): $(OBJECTS_SERVER)
 		$(CC) $(CCFLAGS) -c $<
 
 clean:
-		rm -f */*.o client/$(TARGET_CLIENT) server/$(TARGET_SERVER)
+		rm -f */*.o client/$(TARGET_CLIENT) server/$(TARGET_SERVER) light_server/$(TARGET_LSERVER)
 
 wc: 
 		wc -l */*.c */*.h
