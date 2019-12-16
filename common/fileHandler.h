@@ -1,3 +1,4 @@
+/** @author Nicolas BOECKH */
 #ifndef HEADER_COMMON_FILES
 #define HEADER_COMMON_FILES
 

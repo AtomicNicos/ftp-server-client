@@ -1,5 +1,4 @@
 /** @author Nicolas BOECKH */
-
 #define _GNU_SOURCE
 
 #include <stdlib.h>
@@ -86,12 +85,25 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
     if (*_argc != 2 && *_argc != 3)
         (WARN("-upload: invalid amount of arguments.", "ul <file> [<file new name>]"));
 
-    unsigned char *instruction = malloc(INSTR_SIZE + 1); unsigned char *data = malloc(BUFFER_SIZE + 1);
     char *localFilePath = malloc(FILENAME_MAX + 1);
-    C_ALL(instruction, data); memset(localFilePath, 0, FILENAME_MAX + 1);
+     memset(localFilePath, 0, FILENAME_MAX + 1);
 
     // Get the local file path, relevant to from where the executable was called from (executable_dir/files/)
     snprintf(localFilePath, FILENAME_MAX, "%s/%s", getFilesFolder(argv0), _argv[1]);
+    int flag = 0;
+    for (int i = 0; i < strlen(localFilePath) - 1; i++)
+        if (localFilePath[i] == '.' && localFilePath[i + 1] == '.') {
+            flag = 1;
+            break;
+        }
+    if (flag == 1) {
+        free(localFilePath);
+        (WARN("-upload: hacky argument '..'.", "ul <file> [<file new name>]"));
+    }
+
+    unsigned char *instruction = malloc(INSTR_SIZE + 1); unsigned char *data = malloc(BUFFER_SIZE + 1);
+    C_ALL(instruction, data);
+
     int renameMode = (*_argc == 3) ? 1 : 0;
     ull fileSize = getLength(localFilePath);
 
@@ -198,7 +210,7 @@ char* upload(int localSocket, int *_argc, char *argv0, char **_argv) {
             recvData(localSocket, instruction, data);
             ODEBUG("<= %s", instruction);
             
-            printf("Transfer of %s finished.\n", _argv[1]);
+            printf("\033[38;2;0;255;0m%s %s %s\033[0m\n", "Transfer of", _argv[1], "finished.");
             unlockFile(localFilePath);
         }
         close(fd);  // Cleanup.
@@ -219,12 +231,23 @@ char* download(int localSocket, int *_argc, char *argv0, char **_argv) {
     if (*_argc != 2)
         (WARN("-download: invalid amount of arguments.", "ul <file> [<file new name>]"));
     
-    unsigned char *instruction = malloc(INSTR_SIZE + 1), *data = malloc(BUFFER_SIZE + 1);
-    C_ALL(instruction, data); 
-    
     char *localFilePath = malloc(FILENAME_MAX + 1);
     memset(localFilePath, 0, FILENAME_MAX + 1);
     snprintf(localFilePath, FILENAME_MAX, "%s/%s", getFilesFolder(argv0), _argv[1]);
+
+    int flag = 0;
+    for (int i = 0; i < strlen(localFilePath) - 1; i++)
+        if (localFilePath[i] == '.' && localFilePath[i + 1] == '.') {
+            flag = 1;
+            break;
+        }
+    if (flag == 1) {
+        free(localFilePath);
+        (WARN("-download: hacky argument '..'.", "dl <file>"));
+    }
+
+    unsigned char *instruction = malloc(INSTR_SIZE + 1), *data = malloc(BUFFER_SIZE + 1);
+    C_ALL(instruction, data); 
 
     // 00 OUT : DOWNLOAD -> Inform the server that the client wishes to download a file.
     sendData(localSocket, "", 0, "%s", CMD_DOWNLOAD);
@@ -314,6 +337,7 @@ char* download(int localSocket, int *_argc, char *argv0, char **_argv) {
             C_ALL(instruction, data);
             sendData(localSocket, "", 0, "%s", STATUS_DONE);
             DEBUG("=> DONE");
+            printf("\033[38;2;0;255;0m%s %s %s\033[0m\n", "Transfer of", _argv[1], "finished.");
 
             unlockFile(localFilePath);
         }
@@ -375,15 +399,14 @@ char *deleteFile(int localSocket, int *_argc, char *argv0, char **_argv) {
         recvData(localSocket, instruction, data);
         ODEBUG("<= %s", instruction);
 
-        if (strncmp(instruction, STATUS_ERR, CMD_LEN) == 0) {
-            printColorized("`", 32, 40, 0, 0); printColorized(_argv[2], 32, 40, 0, 0); printColorized("`", 32, 40, 0, 0); printColorized(" does not exist on the server.", 32, 40, 0, 1); 
-        } else if (strncmp(instruction, STATUS_RESINUSE, CMD_LEN) == 0) {
-            printColorized("`", 32, 40, 0, 0); printColorized(_argv[2], 32, 40, 0, 0); printColorized("`", 32, 40, 0, 0); printColorized(" is currently in use on the server.", 32, 40, 0, 1); 
-        } else if (strncmp(instruction, STATUS_DENY, CMD_LEN) == 0) {
-            printColorized("`", 32, 40, 0, 0); printColorized(_argv[2], 32, 40, 0, 0); printColorized("`", 32, 40, 0, 0); printColorized(" could not be deleted from the server.", 32, 40, 0, 1); 
-        } else {
-            printColorized("`", 92, 40, 0, 0); printColorized(_argv[2], 92, 40, 0, 0); printColorized("`", 92, 40, 0, 0); printColorized(" successfully deleted from the server.", 92, 40, 0, 1);
-        }
+        if (strncmp(instruction, STATUS_ERR, CMD_LEN) == 0)
+            printf("\033[38;2;255;0;0m`%s` does not exist on the server.\033[0m\n", _argv[2]);
+        else if (strncmp(instruction, STATUS_RESINUSE, CMD_LEN) == 0)
+            printf("\033[38;2;255;0;0m`%s` is currently in use on the server.\033[0m\n", _argv[2]);
+        else if (strncmp(instruction, STATUS_DENY, CMD_LEN) == 0)
+            printf("\033[38;2;255;0;0m`%s` could not be deleted from the server.\033[0m\n", _argv[2]);
+        else
+            printf("\033[38;2;0;255;0m`%s` successfully deleted from the server.\033[0m\n", _argv[2]);
         
         // Memory Cleanup
         C_ALL(instruction, data);
@@ -398,7 +421,7 @@ char *deleteFile(int localSocket, int *_argc, char *argv0, char **_argv) {
  * @param all See @link { executeBuiltin }
  */
 char* getHelp(int localSocket, int *_argc, char *argv0, char **_argv) {
-    printf("Built-ins :\n- help\n- list\n- ul <file> [...]\n- dl <file> [...]\n- del (l: local|d: distant) <file name>\n");
+    printf("Built-ins :\n- help\n- list\n- ul <file> [<file new name>]\n- dl <file>\n- del (l: local|d: distant) <file name>\n");
     return "HELP";
 }
 

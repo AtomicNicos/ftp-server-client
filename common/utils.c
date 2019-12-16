@@ -1,11 +1,11 @@
-#include <stdarg.h>
+/** @author Nicolas BOECKH */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <errno.h>
-#include <stdarg.h>
 
+#include <stdarg.h>
+#include <errno.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
@@ -189,9 +189,7 @@ char* getFilesFolder(char *argv0) {
     char *dirPath = malloc(FILENAME_MAX + 1);
     char *execPath = malloc(FILENAME_MAX + 1);
 
-    printf("ARGV0: %s\n", argv0);
     snprintf(execPath, FILENAME_MAX + 1, "%s", argv0 + 1);
-    printf("EXEC PATH: %s\n", execPath);
 
     char *slash = strrchr(execPath, '/');
     if (slash)

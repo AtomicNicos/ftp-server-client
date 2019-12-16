@@ -1,3 +1,4 @@
+/** @author Nicolas BOECKH */
 #ifndef HEADER_LIGHT_SERVER
 #define HEADER_LIGHT_SERVER
 

@@ -1,3 +1,4 @@
+/** @author Nicolas BOECKH */
 #ifndef HEADER_CLIENT_BUILTINS
 #define HEADER_CLIENT_BUILTINS
 

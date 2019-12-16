@@ -1,3 +1,4 @@
+/** @author Nicolas BOECKH */
 #ifndef HEADER_COMMON_UTILS
 #define HEADER_COMMON_UTILS
 
@@ -7,9 +8,9 @@
 typedef unsigned long long ull;
 typedef signed long long sll;
 
-#define DEBUGMODE 1
-#define EXIT_FAILURE 1
-#define SERVER_IP "127.0.0.1"
+#define DEBUGMODE       1
+#define EXIT_FAILURE    1
+#define SERVER_IP       "127.0.0.1"
 
 #define BUFFER_SIZE         512 // Size of a packet
 #define INSTR_SIZE          32  // Size of the instruction
@@ -48,7 +49,7 @@ typedef signed long long sll;
 #define DEBUG(msg) { if((DEBUGMODE) == 1) (ODEBUG("%s", msg)); }
 
 /** Prints a formatted debug message. */
-#define ODEBUG(fmt, ...) { if((DEBUGMODE) == 1) { printColorized(("D: "), 95, 40, 0, 0); char *pid = malloc(10); printf("\033[38;2;255;0;0m[%d]\033[0m", getpid()); printf("\n"); char *msg = malloc(256); snprintf(msg, 256, fmt, __VA_ARGS__); printColorized(msg, 95, 40, 0, 1); free(msg); }}
+#define ODEBUG(fmt, ...) { if((DEBUGMODE) == 1) { printColorized(("D: "), 95, 40, 0, 0); char *pid = malloc(10); printf("\033[38;2;255;0;0m[%d]\033[0m  |  ", getpid()); char *msg = malloc(256); snprintf(msg, 256, fmt, __VA_ARGS__); printColorized(msg, 95, 40, 0, 1); free(msg); }}
 
 /** Clears the data buffer. */
 #define CDATA(data) { memset((data), 0, (BUFFER_SIZE + 1)); }

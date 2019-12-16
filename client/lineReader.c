@@ -1,3 +1,4 @@
+/** @author Nicolas BOECKH */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

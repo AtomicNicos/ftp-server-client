@@ -1,3 +1,4 @@
+/** @author Nicolas BOECKH, hasancse91 for the original linked list implementation */
 #include <stdlib.h>
 #include <stdio.h>
 

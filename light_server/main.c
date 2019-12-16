@@ -1,17 +1,19 @@
+/** @author Nicolas BOECKH */
 #define _GNU_SOURCE
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+
 #include <signal.h>
+#include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <unistd.h>
 #include <arpa/inet.h>
-#include <sys/socket.h>
 
 #include "../common/utils.h"
-#include "light_server.h"
+#include "main.h"
 #include "llist.h"
 
 /** @brief Handle a childs death nicely. *FBI stares*
@@ -20,7 +22,8 @@
  * @param no No.
 */
 void signalHandler(int signo, siginfo_t *s_info, void *no) {
-    if (signo == SIGTERM || signo == SIGQUIT || signo == SIGHUP || signo == SIGINT) {
+    if (signo == SIGTERM || signo == SIGQUIT || signo == SIGHUP);
+    else if (signo == SIGINT) {
         int num;
         while ((num = get_first()) && num != -1) {
             KILL(num);
@@ -28,7 +31,7 @@ void signalHandler(int signo, siginfo_t *s_info, void *no) {
             delete_item(num);
         }
 
-        printf("Dying now !\n");
+        printf("\n");
         
         KILL(getpid());
         WAIT_FOR_DEATH(getpid());
@@ -70,6 +73,13 @@ int buildSocket() {
 }
 
 int main(int argc, char **argv) {
+    // Hard exit point
+    if (argc != 1)
+        FAIL_SUCCESFULLY("TOO MANY parameters");
+
+    if (DEBUGMODE == 1)
+        printf("\033[38;2;255;0;0m%s\033[0m\n\n", "Read the ./README.md and know that DEBUGMODE can be disabled by setting DEBUGMODE to 0 in ./common/utils.h");
+
     char *rootPath = malloc(FILENAME_MAX + 1);
     snprintf(rootPath, FILENAME_MAX + 1, "%s%s", getenv("PWD"), argv[0] + 1);
 
@@ -98,6 +108,7 @@ int main(int argc, char **argv) {
 
     int socket = buildSocket();
     int serverRunning = 1;
+    printColorized("Light server launched", 32, 40, 0, 1);
 
     while (serverRunning == 1) {
         struct sockaddr_in client_addr;
@@ -106,32 +117,45 @@ int main(int argc, char **argv) {
         unsigned int addr_len = sizeof(client_addr);
         int client = accept(socket, (struct sockaddr *) &client_addr, &addr_len);
 
-        printColorized("Light server launched", 32, 40, 0, 1);
+        if (client >= 0) {
+            int pid = fork();
+            if (pid > 0) {
+                char *msg = malloc(256);     snprintf(msg, 256, "Server instance starting on process ID [%d]", pid); printColorized(msg, 95, 40, 0, 1); free(msg);
+                insert_at_last(pid);
+            } else if (pid == 0) {  // CHILD
+                if (client < 0) {
+                    FAIL_SUCCESFULLY("Failed to accept client connection\n");
+                } else {
+                    char *client_origin = malloc(INET_ADDRSTRLEN);
+                    inet_ntop(AF_INET, &(client_addr.sin_addr), client_origin, addr_len);
+                    char *addr = malloc(8);
+                    snprintf(addr, 8, "%d", client_addr.sin_port);
 
-        int pid = fork();
-        if (pid > 0) {
-            char *msg = malloc(256); snprintf(msg, 256, "Server instance starting on process ID [%d]", pid); printColorized(msg, 95, 40, 0, 1); free(msg);
-            insert_at_last(pid);
-        } else if (pid == 0) {
-            if (client < 0) 
-                FAIL_SUCCESFULLY("Failed to accept client connection\n");
-            
-            char **_argv = malloc(3 * sizeof(char *));
-            _argv[0] = malloc(32);
-            strncpy(_argv[0], "./server/ftp-server", 32);
-            _argv[1] = malloc(32);
-            snprintf(_argv[1], 32, "%i", client);
-            _argv[2] = NULL;
+                    printf("Connection from [IP:PORT] ["); printColorized(client_origin, 32, 40, 0, 0); printf(":"); printColorized(addr, 34, 40, 0, 0); printf("]\n");
 
-            if (execvp(_argv[0], _argv))
-                perror("Could not instantiate child");
+                    free(client_origin);
+                    free(addr);
+                }
+                signal(SIGINT, SIG_IGN);
+                char **_argv = malloc(3 * sizeof(char *));
+                _argv[0] = malloc(32);
+                strncpy(_argv[0], "./server/ftp-server", 32);
+                _argv[1] = malloc(32);
+                snprintf(_argv[1], 32, "%i", client);
+                _argv[2] = NULL;
 
-            for (int i = 0; i < 3; i++)
-                _argv[i] = realloc(_argv[i], 0);
+                if (execvp(_argv[0], _argv))
+                    perror("Could not instantiate child");
 
-            free(_argv);
-            exit(EXIT_FAILURE);
+                for (int i = 0; i < 3; i++)
+                    _argv[i] = realloc(_argv[i], 0);
+
+                free(_argv);
+                exit(EXIT_FAILURE);
+            } else    // Fork failed
+                perror("FORK");
         }
+        usleep(500);
     }
 
     close(socket);

@@ -1,3 +1,4 @@
+/** @author Nicolas BOECKH */
 #include "crc.h"
 
 // Define the quick lookup table.

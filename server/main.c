@@ -1,3 +1,4 @@
+/** @author Nicolas Boeckh */
 #define _GNU_SOURCE
 
 #include <stdio.h>
@@ -82,6 +83,7 @@ int main(int argc, char **argv) {
 
     close(client);
 
+    printf("\033[38;2;0;255;0m%s\033[0m\n", "Server closing.");
     DEBUG("SERVER INSTANCE STOPPED");
     exit(EXIT_SUCCESS);
 }

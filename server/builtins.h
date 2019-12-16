@@ -1,3 +1,4 @@
+/** @author Nicolas Boeckh */
 #ifndef HEADER_SERVER_BUILTINS
 #define HEADER_SERVER_BUILTINS
 

@@ -1,3 +1,4 @@
+/** @author Nicolas BOECKH */
 #define _GNU_SOURCE
 
 #include <stdio.h>
@@ -26,6 +27,7 @@ int server, clientShouldRun = 1;
 void signalHandler(int signo) {
     if (signo == SIGINT || signo == SIGTERM || signo == SIGQUIT || signo == SIGHUP) {
         sendData(server, "", 0, "%s", CMD_EXIT);
+        printf("\n");
         clientShouldRun = 0;
     } else
         printf("WTF\n");
@@ -41,6 +43,10 @@ int main(int argc, char **argv) {
         FAIL_SUCCESFULLY("TOO MANY parameters");
     // Initialize the CRC lookup map.
     crcInit();
+
+    if (DEBUGMODE == 1)
+        printf("\033[38;2;255;0;0m%s\033[0m\n\n", "Read the ./README.md and know that DEBUGMODE can be disabled by setting DEBUGMODE to 0 in ./common/utils.h");
+
 
     struct sockaddr_in serv_addr;
     memset(&serv_addr, 0, sizeof(serv_addr));
@@ -114,7 +120,7 @@ int main(int argc, char **argv) {
                     } else 
                         fprintf(stderr, "\nCommand '%s' not found, did you mean:\n\n  command 'exit' from deb trolling-you.\n\nTry: sudo apt install <deb name>\n\n", _argv[0]);
                 } else {
-                    fprintf(stderr, "\nCommand '%s' not found.\n\n", _argv[0]);
+                    fprintf(stderr, "\nCommand '%s' not found.\n", _argv[0]);
                 }
             } else if (strlen(builtinCommand) == 2 && strncmp(builtinCommand, "NO", 2) == 0) {
                 ODEBUG("ERROR %s", _argv[0]);

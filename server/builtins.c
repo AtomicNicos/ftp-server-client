@@ -24,7 +24,6 @@ void queryList(int localSocket, char *argv0) {
     C_ALL(instruction, data);
 
     // Get the files stored locally.
-    printf("FILES FOLDER %s\n", getFilesFolder(argv0));
     getFiles(getFilesFolder(argv0), files, fileCount);
 
     // 01 OUT : FILES <num>

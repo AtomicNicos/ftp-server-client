@@ -1,3 +1,4 @@
+/** @author Nicolas BOECKH, hasancse91 for the original linked list implementation */
 #ifndef HEADER_LSERVER_LLIST
 #define HEADER_LSERVER_LLIST
 

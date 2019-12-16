@@ -45,3 +45,6 @@ zip:
 
 delzip:
 		rm $(COMPNAME).zip
+
+sha:
+		sha256sum client/*.h client/*.c common/*.h common/*.c server/*.h server/*.c light_server/*.h light_server/*.c
