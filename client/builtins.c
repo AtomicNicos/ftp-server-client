@@ -372,7 +372,7 @@ char *deleteFile(int localSocket, int *_argc, char *argv0, char **_argv) {
                 printColorized("`", 32, 40, 0, 0); printColorized(_argv[2], 32, 40, 0, 0); printColorized("`", 32, 40, 0, 0); printColorized(" successfully deleted.", 32, 40, 0, 1); 
             }
         } else {
-            printColorized("`", 32, 40, 0, 0); printColorized(_argv[2], 32, 40, 0, 0); printColorized("`", 32, 40, 0, 0); printColorized(" does not exist on the server.", 32, 40, 0, 1); 
+            printColorized("`", 32, 40, 0, 0); printColorized(_argv[2], 32, 40, 0, 0); printColorized("`", 32, 40, 0, 0); printColorized(" does not exist locally.", 32, 40, 0, 1); 
         }
 
         free(localFilePath);

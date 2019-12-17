@@ -23,7 +23,7 @@ Which is why I tried to make this as solid as possible. I've tried breaking it o
   - [Level 4.0+](#level-4.0+)
 - [Environment](#environment)
 - [How to use it](#how-to-use-it)
-- [WARNING](#warning)
+- [WARNING](#warning) (<--------- READ THIS, seriously)
 - [SHA256 of the files](#sha256-of-the-files)
 - [Credits](#credits)
 
@@ -149,6 +149,10 @@ PORT $> 4242
 ## WARNING ##
 
 Do not attempt to use `./server/ftp_server`, it requires a second argument which is a file descriptor (which by all accounts would not be open, thus unhappy segfaults).
+
+Take the time to whitelist `ftp_client`, `ftp_lserver` and `ftp_server` in all your firewall systems. 
+
+Note for Comodo IS users, unblock executables for all security controls and restart the applications.
 
 ## SHA256 of the files ##
 
