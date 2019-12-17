@@ -77,7 +77,7 @@ Full error communication.
 
 Debug mode (in `common/utils.c` set `DEBUGMODE` to `1`, then in the terminal `make clean && make` )
 
-Additionnal commands :
+Additional commands :
 
 - `help` => Displays a small help dialog.
 - `del (l: local|d: distant) <filename>` => Deletes a message.
