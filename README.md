@@ -1,4 +1,4 @@
-# Programming Languages Seminary #
+# FTP Server Client Implementation over TCP/IP in C #
 
 Welcome to whatever the hell this was.
 
@@ -12,85 +12,11 @@ Which is why I tried to make this as solid as possible. I've tried breaking it o
 
 ## Navigation ##
 
-- [What has been done](#what-has-been-done)
-  - [Level 1.0](#level-1.0)
-  - [Level 1.5](#level-1.5)
-  - [Level 1.7](#level-1.7)
-  - [Level 2.0](#level-2.0)
-  - [Level 2.5](#level-2.5)
-  - [Level 3.0](#level-3.0)
-  - [Level 4.0](#level-4.0)
-  - [Level 4.0+](#level-4.0+)
 - [Environment](#environment)
 - [How to use it](#how-to-use-it)
 - [WARNING](#warning) (<--------- READ THIS, seriously)
 - [SHA256 of the files](#sha256-of-the-files)
 - [Credits](#credits)
-
-## What has been done ##
-
-Good question!
-
-### Level 1.0 ###
-
-Server opens and gives IP address & Port where it expects connections. `Deprecated : Now Light Server`
-
-Client queries user for IP address & Port.
-
-Server and Client print out status.
-
-Commands implemented :
-
-- `list`
-- get => `dl`
-- `exit`
-
-Program loop.
-
-### Level 1.5 ###
-
-"Basic Error Control" : Detects use of wrong command and non-existing filename.
-
-### Level 1.7 ###
-
-"Error Control" : Failure to connect to Server or Port
-
-### Level 2.0 ###
-
-File uploading implemented. put => `ul`
-
-### Level 2.5 ###
-
-File uploading with optional rename implemented.
-
-### Level 3.0 ###
-
-`Deprecated by Light Server implementation`
-
-### Level 4.0 ###
-
-Light Server !
-
-### Level 4.0+ ###
-
-Full error communication.
-
-Debug mode (in `common/utils.c` set `DEBUGMODE` to `1`, then in the terminal `make clean && make` )
-
-Additional commands :
-
-- `help` => Displays a small help dialog.
-- `del (l: local|d: distant) <filename>` => Deletes a message.
-
-File locking : A resource in use (by someone else's uploading for example), cannot be modified by the user.
-
-File overwriting : An existing resource can be overwritten.
-
-Colors !
-
-Documentation ?
-
-More I think ? Meh, have fun !
 
 ## Environment ##
 
